@@ -22,11 +22,11 @@ typedef enum state
 
 typedef struct status
 {
-	int16_t a;
-	int16_t b;
-	int16_t t;
+	int32_t a;
+	int32_t b;
+	int32_t t;
 	
-	int16_t last;
+	int32_t last;
 	
 	bool sw;
 	
@@ -34,30 +34,49 @@ typedef struct status
 	
 } status;
 
+
+// declare data
 status current_status;
 
-int16_t calcIncrement()
+// define some constants for calculations
+//
+// # of ticks on longest traverse (end stop for T)
+// 0x00ff = 255, 255 * 20 ms = 5.1 Sec
+// This might be more useful is variable.
+static const int32_t MAX_TICKS = 0x00ff;
+//static const int32_t MAX_ADC = 0x03ff;
+static const int32_t MAX_ADC = 0xffc0;
+
+
+
+// Calculate SIGNED value for current update.
+int32_t calcIncrement()
 {
-	int16_t val;
+
+	int32_t travel_time;
+	int32_t deltaY;
+	int32_t increment;
 	
-	val = current_status.t >> 2;		
+	travel_time = (MAX_TICKS * current_status.t )/MAX_ADC;
+
+	// Travel time can't be 0, or division underflows...
+	if(travel_time == 0)
+	{
+		travel_time = 1;
+	}
 	
-	if(val == 0)
-	{
-		val = 1;
-	}
-	if(current_status.a > current_status.b)
-	{
-		val = -val;
-	}
-	return val;
+	deltaY = current_status.b - current_status.a;
+	
+	increment = deltaY/travel_time;
+	
+	//increment /= 64;
+	
+	return increment;
 }
 
-int16_t evalState()
+int32_t evalState()
 {
-	int16_t delta;
-	
-	delta = calcIncrement();
+	int32_t delta;
 	
 	switch(current_status.st)
 	{
@@ -77,6 +96,8 @@ int16_t evalState()
 		break;
 		case eATOB:
 		{
+			delta = calcIncrement();
+
 			if(current_status.sw == false)
 			{
 				current_status.st = eBTOA;
@@ -122,6 +143,8 @@ int16_t evalState()
 		break;
 		case eBTOA:
 		{
+			delta = calcIncrement();
+
 			if(current_status.sw == true)
 			{
 				current_status.st = eATOB;
@@ -170,7 +193,7 @@ ISR(TIM1_CAPT_vect)
 	// set the pulse width based on switch and pot positions.
 	current_status.last = evalState();
 	
-	OCR1A = 1000 + current_status.last;
+	OCR1A = 1000 + (current_status.last /64);
 	
 }
 
@@ -213,9 +236,9 @@ void setPWM(void)
 	GTCCR = 1 << PSR10;
 }
 
-int readADC(uint8_t chan)
+uint32_t readADC(uint8_t chan)
 {
-	int value;
+	uint32_t value;
 	
 	// only allow the pins we've selected to read...
 	if(!( (chan == 0) || (chan == 3) || (chan == 7)))
@@ -226,6 +249,8 @@ int readADC(uint8_t chan)
 	// turn on adc
 	// TODO: perhaps turn on and leave on?
 	ADCSRA = 0x86; // power bit, prescale of 64
+	
+	ADCSRB |= 0x10; // left justify
 	
 	// set digital input disable
 	DIDR0 = 0x89;
