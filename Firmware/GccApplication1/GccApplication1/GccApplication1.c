@@ -3,6 +3,8 @@
  *
  * Created: 7/3/2014 3:43:10 PM
  *  Author: byron.jacquot
+ *
+ *
  */ 
 
 #include <avr/io.h>
@@ -34,9 +36,17 @@ typedef struct status
 	
 } status;
 
+typedef struct phasetrack
+{
+	
+	int32_t phasor; // counts 0 to 0xffff - needs to be singed to catch overflow
+	bool     rising;
+}phasetrack;
 
 // declare data
 status current_status;
+
+phasetrack pt;
 
 // define some constants for calculations
 //
@@ -183,14 +193,96 @@ int32_t evalState()
 	while(1);
 }
 
+// this tells us how far to step in each increment.
+// It's based on the reading of the T pot.
+// It may eventually become a LUT access to make the timing more regular.
+int16_t calcDelta()
+{
+
+	return current_status.t ;
+
+}
+
+// This calculates the value of the phasor.
+// The phasor is basically constant:
+//	- it always goes from 0 to 0xffff
+//  - it always increases on the A->B traverse
+//  - it always decreases on the B->A traverse
+//  - it sits at the endpoints (0 or 0xffff) when in the static positions
+//
+// The trick is that it wil be scaled based on the pot settings before being applied.
+bool calcNextPhasor(int16_t increment)
+{
+	if(pt.rising)
+	{
+		pt.phasor += increment;
+	}
+	else
+	{
+		pt.phasor -= increment;
+	}
+	
+	//check for overflow indicating end of segment reached.
+	// truncate & return...
+	if(pt.phasor > 0xffff)
+	{
+		pt.phasor = 0xffff;
+		return true;		
+	}
+	else if(pt.phasor < 0)
+	{
+		pt.phasor = 0;
+		return true;		
+	}
+	
+	return false;
+}
+
+// This routine scales the phasor into the proper range.
+// The phasor always goes from A to B by covering the 0 to 0xffff range
+// But A and B may by nearer to each other than that
+// and B might even be less than A, reversing things overall.
+// This routine centralizes that translation.
+int16_t scalePhasor()
+{
+	int16_t range;
+	int16_t offset;
+	
+	if(current_status.a <= current_status.b)
+	{
+		// then logic is right side up.
+		range = current_status.b - current_status.a;
+		offset = current_status.a;
+
+		// scale 0xffff into range
+
+	}
+	else
+	{
+		// then logic is upside down.
+		range = current_status.a - current_status.b;
+		offset = current_status.b;
+		
+		
+	}
+}
+
+
 ISR(TIM1_CAPT_vect)
 {
-	//uint16_t new;
+	int16_t delta;
+	int32_t pwm_val;
 	
-	// flag is cleared on execution of this vector
+	// nothing to reset - flag is cleared on execution of this vector
 	
 	// set the pulse width based on switch and pot positions.
 	current_status.last = evalState();
+	
+	// the new version...
+	delta = calcDelta();
+	
+	calcNextPhasor(delta);
+	
 	
 	OCR1A = 1000 + (current_status.last /64);
 	
@@ -198,40 +290,58 @@ ISR(TIM1_CAPT_vect)
 
 
 
-void setPWM(void)
+void setupPWM(void)
 {
-	// holdoff timer prescalar counting
+	// holdoff timer prescalar counting while we configure
+	// This disables the peripheral
 	GTCCR = 1 << TSM;
 
 	// Enable timer output compare A bit as output
 	DDRA |= 0x40;
 
+	// Note: WGM is 4 bits split between Ctrl registers A and B.
+	// We want mode FAST PWM, top set by ICR1
+	// Selected by 0b1110.
+
 	// set control reg A
-	//TCCR1A = 0x40;// toggle OC1a on match
-	TCCR1A = 0x82;// clear OC1a on match, WGM = fast pwm, top is ICR1
+	// Bits 7,6 - Output compare mode chan A = 0b10 = clear output on match, set output at bottom
+	// Bits 5,4 - Output compare mode chan B = 0b00 = disconnected
+	// Bits 3,2 - RFU
+	// Bits 1,0 - Waveform gen mode LSBs 11,10 : 0b10 
+	// WGM = fast pwm, top is ICR1
+	TCCR1A = 0x82;
 	
 	// set control reg B
-	//TCCR1B = 0x02;
-	//TCCR1B = 0x05; // div by 1024
-	//TCCR1B = 0x0d; // div by 1024, clear at OCR1A
-	TCCR1B = 0x1a; // // div by 8, fast PWM, top is ICR1
-	
+	// Bit 7 - input noice calcel = 0b0 = off
+	// bit 6 - input capture edge sel = off
+	// bit 5 - RFU
+	// bits 4:3 - WGM MSBs = 0b11
+	// bits 2:0 - clk scale: 0b010 = IO clk div by 8 = 1 mHz.
+	TCCR1B = 0x1a; 
 	
 	// set control reg C
+	// Force output compare - inactive in PWM modes.
 	TCCR1C = 0;
 
-	// no interrupts
+	// Start with no interrupts
 	TIMSK1 = 0;
 
-	//TCNT1 = 0x5555;
+	// ICR1 is 16-bit reg.  In Fast PWM, it sets the TOP value for the counter.
+	// 50 Hz = 20000 1 mHz pulses.
 	ICR1 = 20000-1;
+	
+	// initialize the counter at 0.
 	TCNT1 = 0x0;
+	
+	// Initialize the output compare for 1000 clock pulses (1 millisecond)
 	OCR1A = 1000;
 
 	// enable interrupt on capture (period)
 	TIMSK1 = 0x20;
 
 	// reset & restart prescalar counter
+	// Writing 0 to TSM (bit 7) causes counter to start counting,
+	// Writing 1 to PSR10 (bit 0) causes prescalar to reset, starting prescale from 0
 	GTCCR = 1 << PSR10;
 }
 
@@ -280,19 +390,22 @@ int main(void)
 	
 	// Configure clock scaling.
 	// 2-step procedure to keep stray pointers from mangling the value.
-	// TODO: evaluate speeds...we're trading speed for power consumption.
+	// Using 16 mHz resonator, we'll divide by 2 for 8 MHz.
 	CLKPR = 0x80;
 	CLKPR = 0x01; // clk div 2 = 8 MHz.
 	
-	setPWM();
+	setupPWM();
 	
 	// set up button pin
 	DDRA &= ~0x02; // PA1 as input
 	PORTA |= 0x02; // pulled up
 	
-	// configure internal data
+	// configure global data
 	current_status.sw = false;
 	current_status.st = eIDLE;
+		
+	pt.phasor = 0;
+	pt.rising = true;
 		
 	// then enable interrupts
 	sei();
