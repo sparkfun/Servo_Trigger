@@ -20,7 +20,7 @@ typedef enum state
 	eBTOA	
 }state;
 
-typedef struct status
+typedef struct status 
 {
 	int32_t a;
 	int32_t b;
@@ -44,7 +44,6 @@ status current_status;
 // 0x00ff = 255, 255 * 20 ms = 5.1 Sec
 // This might be more useful is variable.
 static const int32_t MAX_TICKS = 0x00ff;
-//static const int32_t MAX_ADC = 0x03ff;
 static const int32_t MAX_ADC = 0xffc0;
 
 

@@ -1,0 +1,63 @@
+Developed using Atmel Studio 6 (6.2.1153) and the JTAGICE3 debug box.
+---------------------------------
+
+Atmel DebugWire is cool, but a hassle to get started with.  I'm spending too much time messing 
+with it, trying to navigate everything, so I'm capturing the tricks and secrets here.
+
+Navigation
+----------
+
+The first trick is that there are two panels that interact.
+
+The first of these is part of the project file - the tab in the editor named after the project 
+(IE tab "GccApplication1," no file extension).  
+There's a sub-tab there makred "tool". 
+
+The second of these is the Device Programming dialog (Ctrl+shift+P), or the button with the 
+chip & lightning on it.
+
+The project->tool tab lists the debugger/programmer, and specifies the interface it's using, ISP or DW.
+
+Chips come with ISP enabled and DW disabled, plus some other settings like default clock source & brownout settings.
+
+In order for the Device Programming dialog to work, we have to be in ISP mode.
+
+The First Time
+--------------
+
+With a brand new chip, set the project page to use ISP.
+
+Open the programming dialog.  
+	Enable the interface, the read the voltage and device ID.
+	Go to the fuses tab, select clock source, etc as needed.  
+	If you're moving to use DW, enable that fuse.
+	Program the fuses for the target - it may request a target power cycle.
+	Close the dialog.
+
+Set the project page to use DW.
+Build the application.
+Start debugging by loading the applicaton (F5)
+	Debug as normal - pausing, single stepping, breakpoints all work as expected.
+
+If you're going to rebuild/reload without reconfiguring the fuses, etc, you can just quit using the stop menu button.
+
+If you're going to reconfigure the chip, you need to use the "debug->disable DebugWIRE and close" menu item.  
+Otherwise, the chip stays in DW mode, and you'll get the  "Got 0xc0, expected 0x00" error message.
+	
+
+When You Get Stuck
+------------------
+
+It plays out like this: Yesterday you were debugging, today you start and decide to go and check the 
+chip config in the programming dialog.  
+Nothing works, and the error details contain  "Got 0xc0, expected 0x00."
+
+The trick to unjam it - set the project to DW, and restart the debug session (F5).  Once loaded, use 
+the "debug->disable DW and close" to get out.  Now ISP can get in.
+
+
+One other fatal thing:
+--------------------
+
+I think I set the fuses for an external clock that isn't present on the board...I can't seem to 
+get in at all...still conjuring a solution.
