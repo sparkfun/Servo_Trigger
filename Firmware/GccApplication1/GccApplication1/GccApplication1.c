@@ -40,7 +40,10 @@ typedef struct phasetrack
 {
 	
 	int32_t phasor; // counts 0 to 0xffff - needs to be singed to catch overflow
-	bool     rising;
+	bool    rising;
+	
+	int32_t us_val; // how many microseconds to add to the PWM ?
+	
 }phasetrack;
 
 // declare data
@@ -56,7 +59,7 @@ phasetrack pt;
 static const int32_t MAX_TICKS = 0x00ff;
 static const int32_t MAX_ADC = 0xffc0;
 
-
+#if 0
 
 // Calculate SIGNED value for current update.
 int32_t calcIncrement()
@@ -193,15 +196,54 @@ int32_t evalState()
 	while(1);
 }
 
+#endif
+
+// Table of timing constants.
+// These are looked up and added to the phasor on each pulse ISR.
+// They are indexed & interpolated using the T pot.
+//
+// Each value was calc'd using the spreadsheet...
+//
+// the formula per entry is
+// increment entry = max phasor/pwm freq in Hz/desired time
+// ie: increment = 0xffff/50/travel time
+//
+// Table is 17 entries long so we can do linear interpolation between 
+// the N and N+1th entries
+static int16_t timelut[17] =
+{
+	131, 164, 218,  262,  328,  437,  524,  655,
+	749, 874, 1049, 1311, 1748, 2621, 5243, 13107,
+	26214
+};
+
 // this tells us how far to step in each increment.
 // It's based on the reading of the T pot.
-// It may eventually become a LUT access to make the timing more regular.
 int16_t calcDelta()
 {
+	// time reading is 12 bits, formatted into the top of 
+	// a 16-bit value.
+	// We'll use the 4 MSBs to look up a time value,
+	// and the next 4 to do linear interpolation between it and the next value.
 
-	return current_status.t ;
+	uint8_t idx = current_status.t >> 12;
+	int16_t val = timelut[idx];
+	
+	// Calc window to next value
+	volatile int16_t window = timelut[idx+1] - timelut[idx];
+
+	// split that window into 16 chunks
+	window >>= 4;  
+	
+	// and take the number of chunks as determined by the next 4 bits
+	window *= ((current_status.t & 0x00000f00) >> 8);
+
+	return val + window;
 
 }
+
+
+
 
 // This calculates the value of the phasor.
 // The phasor is basically constant:
@@ -210,7 +252,9 @@ int16_t calcDelta()
 //  - it always decreases on the B->A traverse
 //  - it sits at the endpoints (0 or 0xffff) when in the static positions
 //
-// The trick is that it wil be scaled based on the pot settings before being applied.
+// The trick is that it will be scaled based on the pot settings before being applied.
+//
+// Returns true when it reaches the end of the segment, to advance FSM
 bool calcNextPhasor(int16_t increment)
 {
 	if(pt.rising)
@@ -238,6 +282,9 @@ bool calcNextPhasor(int16_t increment)
 	return false;
 }
 
+
+
+
 // This routine scales the phasor into the proper range.
 // The phasor always goes from A to B by covering the 0 to 0xffff range
 // But A and B may by nearer to each other than that
@@ -245,46 +292,110 @@ bool calcNextPhasor(int16_t increment)
 // This routine centralizes that translation.
 int16_t scalePhasor()
 {
-	int16_t range;
-	int16_t offset;
+	int32_t range;
+	int32_t offset;
 	
-	if(current_status.a <= current_status.b)
-	{
-		// then logic is right side up.
-		range = current_status.b - current_status.a;
-		offset = current_status.a;
+	int32_t   result;
 
-		// scale 0xffff into range
+	// a, b are 16-bit unsigned values	
+	// range and offset are 32-bit signed.
+	// When a > b, range is negative
+	// thus the result is subtracted from the offset.
+	range = current_status.b - current_status.a;
+	offset = current_status.a;
+	
+	//Scale range and offset into 0 to 1000 uSec
+	range = (range * 1000)/0x0000ffff;
+	offset = (offset * 1000)/0x0000ffff;
+		
+	// scale phasor into range
+	result = (pt.phasor * range)/0x0000ffff;
+		
+	//add on offset
+	result += offset;
 
-	}
-	else
-	{
-		// then logic is upside down.
-		range = current_status.a - current_status.b;
-		offset = current_status.b;
-		
-		
-	}
+	return result;
 }
 
 
-ISR(TIM1_CAPT_vect)
+
+void evalState2()
 {
 	int16_t delta;
-	int32_t pwm_val;
 	
-	// nothing to reset - flag is cleared on execution of this vector
-	
-	// set the pulse width based on switch and pot positions.
-	current_status.last = evalState();
-	
-	// the new version...
 	delta = calcDelta();
 	
-	calcNextPhasor(delta);
+	switch(current_status.st)
+	{
+		case eIDLE:
+		{
+			// Advance when we see the switch actuate
+			if(current_status.sw == true)
+			{
+				current_status.st = eATOB;
+				pt.rising         = true;
+			}
+		}
+		break;
+		case eATOB:
+		{
+			if(current_status.sw == false)
+			{
+				current_status.st = eBTOA;
+				pt.rising         = false;				
+			}
+			
+			// climbing up to b
+			if( calcNextPhasor(delta) )
+			{
+				current_status.st = eATTOP;
+			}
+		}
+		break;
+		case eATTOP:
+		{
+			if(current_status.sw == false)
+			{
+				current_status.st = eBTOA;
+				pt.rising         = false;
+			}
+		}
+		break;
+		case eBTOA:
+		{
+			if(current_status.sw == true)
+			{
+				current_status.st = eATOB;
+				pt.rising         = true;
+			}
+			
+			// dropping down to A
+			if( calcNextPhasor(delta) )
+			{
+				current_status.st = eIDLE;
+			}
+		}
+		break;
+		default:
+		{
+			// TODO: better fix?
+			// debugger catch for invalid states
+			while(1);
+		}
+	}
 	
+	pt.us_val =  scalePhasor();
 	
-	OCR1A = 1000 + (current_status.last /64);
+}
+
+ISR(TIM1_CAPT_vect)
+{
+	// no hardware soure to reset - flag is cleared on execution of this vector
+	
+	// set the pulse width based on switch and pot positions.
+	evalState2();
+	
+	OCR1A = 1000 + pt.us_val;
 	
 }
 
@@ -402,6 +513,8 @@ int main(void)
 	
 	// configure global data
 	current_status.sw = false;
+	current_status.st = eIDLE;
+		
 	current_status.st = eIDLE;
 		
 	pt.phasor = 0;
