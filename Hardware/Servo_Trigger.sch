@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -17371,9 +17371,9 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <instance part="GND13" gate="1" x="20.32" y="71.12"/>
 <instance part="GND14" gate="1" x="119.38" y="83.82"/>
 <instance part="GND15" gate="1" x="129.54" y="83.82"/>
-<instance part="R1" gate="R?" x="165.1" y="93.98" rot="R270"/>
-<instance part="R2" gate="R?" x="185.42" y="93.98" rot="R270"/>
-<instance part="R3" gate="R?" x="205.74" y="93.98" rot="R270"/>
+<instance part="R1" gate="R?" x="165.1" y="93.98" rot="MR90"/>
+<instance part="R2" gate="R?" x="185.42" y="93.98" rot="MR90"/>
+<instance part="R3" gate="R?" x="205.74" y="93.98" rot="MR90"/>
 <instance part="GND1" gate="1" x="205.74" y="78.74"/>
 <instance part="GND2" gate="1" x="185.42" y="78.74"/>
 <instance part="GND3" gate="1" x="165.1" y="78.74"/>
@@ -17442,21 +17442,6 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="SUPPLY1" gate="G$1" pin="VCC"/>
 </segment>
 <segment>
-<pinref part="SUPPLY8" gate="G$1" pin="VCC"/>
-<pinref part="R3" gate="R?" pin="CCW"/>
-<wire x1="205.74" y1="109.22" x2="205.74" y2="99.06" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
-<pinref part="R2" gate="R?" pin="CCW"/>
-<wire x1="185.42" y1="109.22" x2="185.42" y2="99.06" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="SUPPLY5" gate="G$1" pin="VCC"/>
-<pinref part="R1" gate="R?" pin="CCW"/>
-<wire x1="165.1" y1="109.22" x2="165.1" y2="99.06" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="JP2" gate="G$1" pin="2"/>
 <pinref part="SUPPLY9" gate="G$1" pin="VCC"/>
 <wire x1="205.74" y1="157.48" x2="210.82" y2="157.48" width="0.1524" layer="91"/>
@@ -17477,6 +17462,21 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="R6" gate="G$1" pin="2"/>
 <wire x1="83.82" y1="38.1" x2="83.82" y2="40.64" width="0.1524" layer="91"/>
 <pinref part="SUPPLY12" gate="G$1" pin="VCC"/>
+</segment>
+<segment>
+<pinref part="R1" gate="R?" pin="CW"/>
+<pinref part="SUPPLY5" gate="G$1" pin="VCC"/>
+<wire x1="165.1" y1="99.06" x2="165.1" y2="109.22" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="R3" gate="R?" pin="CW"/>
+<pinref part="SUPPLY8" gate="G$1" pin="VCC"/>
+<wire x1="205.74" y1="99.06" x2="205.74" y2="109.22" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="R2" gate="R?" pin="CW"/>
+<pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
+<wire x1="185.42" y1="99.06" x2="185.42" y2="109.22" width="0.2032" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -17508,21 +17508,6 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="GND11" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="R1" gate="R?" pin="CW"/>
-<pinref part="GND3" gate="1" pin="GND"/>
-<wire x1="165.1" y1="88.9" x2="165.1" y2="81.28" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="R2" gate="R?" pin="CW"/>
-<pinref part="GND2" gate="1" pin="GND"/>
-<wire x1="185.42" y1="88.9" x2="185.42" y2="81.28" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="R3" gate="R?" pin="CW"/>
-<pinref part="GND1" gate="1" pin="GND"/>
-<wire x1="205.74" y1="88.9" x2="205.74" y2="81.28" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="JP2" gate="G$1" pin="1"/>
 <pinref part="GND5" gate="1" pin="GND"/>
 <wire x1="205.74" y1="154.94" x2="210.82" y2="154.94" width="0.1524" layer="91"/>
@@ -17549,6 +17534,21 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="GND7" gate="1" pin="GND"/>
 <pinref part="SJ2" gate="G$1" pin="1"/>
 <wire x1="83.82" y1="7.62" x2="83.82" y2="12.7" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="R1" gate="R?" pin="CCW"/>
+<pinref part="GND3" gate="1" pin="GND"/>
+<wire x1="165.1" y1="88.9" x2="165.1" y2="81.28" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="R3" gate="R?" pin="CCW"/>
+<pinref part="GND1" gate="1" pin="GND"/>
+<wire x1="205.74" y1="88.9" x2="205.74" y2="81.28" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND2" gate="1" pin="GND"/>
+<pinref part="R2" gate="R?" pin="CCW"/>
+<wire x1="185.42" y1="81.28" x2="185.42" y2="88.9" width="0.2032" layer="91"/>
 </segment>
 </net>
 <net name="MOSI/PWM" class="0">

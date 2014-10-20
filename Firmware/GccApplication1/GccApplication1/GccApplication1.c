@@ -12,14 +12,33 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-//volatile uint16_t vals[3];
+// constants for the hardware interfaces
+// Pots for positions A, B and time T.
+static const uint8_t POTA_CHAN = 0;
+static const uint8_t POTB_CHAN = 3;
+static const uint8_t POTT_CHAN = 7;
+
+// Input pin for switch or trigger
+static const uint8_t TRIG_PIN_A_MASK = 0x02;
+
+// Timing & ramp gen constants
+// Pulse width = PWM_MIN_USEC + PWM_RANGE_USEC
+// some servos have a wider range than others - 1 to 2 msec is save for all tested so far.
+// .7 to 2.3 msec will drive some farther, but will make others very unhappy, possibly grinding gears.
+static const int32_t PWM_MIN_USEC   = 1000; // narrowest pulse is 1000 usec
+static const int32_t PWM_RANGE_USEC = 1000; // diff between min and max PWM pulses.
+//static const int32_t PWM_MIN_USEC   = 700; // narrowest pulse is 1000 usec
+//static const int32_t PWM_RANGE_USEC = 1600; // diff between min and max PWM pulses.
+static const int32_t ADC_MAX        = 0x0000ffff; // ADC values are left-justified into 16-bits
+static const int32_t PHASOR_MAX     = 0x0000ffff; // Phasor counts from 0 to 0xffff
 
 typedef enum state
 {
 	eIDLE = 0,
 	eATOB,
 	eATTOP,
-	eBTOA	
+	eBTOA,
+	eWAIT_TO_RESET	
 }state;
 
 typedef struct status 
@@ -28,175 +47,21 @@ typedef struct status
 	int32_t b;
 	int32_t t;
 	
-	int32_t last;
-	
-	bool sw;
+	bool  sw;
 	
 	state st;
 	
-} status;
-
-typedef struct phasetrack
-{
-	
 	int32_t phasor; // counts 0 to 0xffff - needs to be singed to catch overflow
-	bool    rising;
+	bool    rising; // are we rising or falling?
 	
 	int32_t us_val; // how many microseconds to add to the PWM ?
 	
-}phasetrack;
+}status;
 
-// declare data
-status current_status;
-
-phasetrack pt;
+// declare global data
+status     current_status;
 
 // define some constants for calculations
-//
-// # of ticks on longest traverse (end stop for T)
-// 0x00ff = 255, 255 * 20 ms = 5.1 Sec
-// This might be more useful is variable.
-static const int32_t MAX_TICKS = 0x00ff;
-static const int32_t MAX_ADC = 0xffc0;
-
-#if 0
-
-// Calculate SIGNED value for current update.
-int32_t calcIncrement()
-{
-
-	int32_t travel_time;
-	int32_t deltaY;
-	int32_t increment;
-	
-	travel_time = (MAX_TICKS * current_status.t )/MAX_ADC;
-
-	// Travel time can't be 0, or division underflows...
-	if(travel_time == 0)
-	{
-		travel_time = 1;
-	}
-	
-	deltaY = current_status.b - current_status.a;
-	
-	increment = deltaY/travel_time;
-	
-	//increment /= 64;
-	
-	return increment;
-}
-
-int32_t evalState()
-{
-	int32_t delta;
-	
-	switch(current_status.st)
-	{
-		case eIDLE:
-		{
-			// Advance when we see the switch actuate
-			if(current_status.sw == true)
-			{
-				current_status.st = eATOB;
-				
-				return current_status.last;
-			}
-			
-			// stay at current A position
-			return current_status.a;
-		}
-		break;
-		case eATOB:
-		{
-			delta = calcIncrement();
-
-			if(current_status.sw == false)
-			{
-				current_status.st = eBTOA;
-				
-				return current_status.last;
-			}
-			
-			if(current_status.a < current_status.b)
-			{
-				// climbing up to b
-				if((current_status.last + delta) >= current_status.b)
-				{
-					current_status.st = eATTOP;
-				
-					return current_status.b;
-				}
-			}
-			else
-			{
-				// dropping down to b
-				if((current_status.last + delta) <= current_status.b)
-				{
-					current_status.st = eATTOP;
-					
-					return current_status.b;
-				}
-			}
-			
-			return current_status.last + delta;
-		}
-		break;
-		case eATTOP:
-		{
-			if(current_status.sw == false)
-			{
-				current_status.st = eBTOA;
-				
-				return current_status.last;
-			}
-			
-			return current_status.b;
-		}
-		break;
-		case eBTOA:
-		{
-			delta = calcIncrement();
-
-			if(current_status.sw == true)
-			{
-				current_status.st = eATOB;
-				
-				return current_status.last;
-			}
-			
-			if(current_status.a < current_status.b)
-			{
-				// dropping down to A
-				if((current_status.last - delta) <= current_status.a)
-				{
-					current_status.st = eIDLE;
-					
-					return current_status.a;
-				}
-			}
-			else
-			{
-				// climbing up to A
-				if((current_status.last - delta) >= current_status.a)
-				{
-					current_status.st = eIDLE;
-					
-					return current_status.a;
-				}
-			}
-			
-			return current_status.last - delta;
-					
-		}
-		break;
-	}
-	
-	// TODO: better fix?
-	// catch for invalid states
-	while(1);
-}
-
-#endif
 
 // Table of timing constants.
 // These are looked up and added to the phasor on each pulse ISR.
@@ -205,12 +70,12 @@ int32_t evalState()
 // Each value was calc'd using the spreadsheet...
 //
 // the formula per entry is
-// increment entry = max phasor/pwm freq in Hz/desired time
+// increment entry = PHASOR_MAX/pwm freq in Hz/desired time
 // ie: increment = 0xffff/50/travel time
 //
 // Table is 17 entries long so we can do linear interpolation between 
 // the N and N+1th entries
-static int16_t timelut[17] =
+static const int16_t timelut[17] =
 {
 	131, 164, 218,  262,  328,  437,  524,  655,
 	749, 874, 1049, 1311, 1748, 2621, 5243, 13107,
@@ -229,11 +94,11 @@ int16_t calcDelta()
 	uint8_t idx = current_status.t >> 12;
 	int16_t val = timelut[idx];
 	
-	// Calc window to next value
+	// Calc window between this and next value
 	volatile int16_t window = timelut[idx+1] - timelut[idx];
 
 	// split that window into 16 chunks
-	window >>= 4;  
+	window >>= 4;  // IE: divide by 16
 	
 	// and take the number of chunks as determined by the next 4 bits
 	window *= ((current_status.t & 0x00000f00) >> 8);
@@ -247,7 +112,7 @@ int16_t calcDelta()
 
 // This calculates the value of the phasor.
 // The phasor is basically constant:
-//	- it always goes from 0 to 0xffff
+//	- it always goes from 0 to 0xffff (PHASOR_MAX)
 //  - it always increases on the A->B traverse
 //  - it always decreases on the B->A traverse
 //  - it sits at the endpoints (0 or 0xffff) when in the static positions
@@ -257,33 +122,30 @@ int16_t calcDelta()
 // Returns true when it reaches the end of the segment, to advance FSM
 bool calcNextPhasor(int16_t increment)
 {
-	if(pt.rising)
+	if(current_status.rising)
 	{
-		pt.phasor += increment;
+		current_status.phasor += increment;
 	}
 	else
 	{
-		pt.phasor -= increment;
+		current_status.phasor -= increment;
 	}
 	
 	//check for overflow indicating end of segment reached.
 	// truncate & return...
-	if(pt.phasor > 0xffff)
+	if(current_status.phasor > PHASOR_MAX)
 	{
-		pt.phasor = 0xffff;
+		current_status.phasor = PHASOR_MAX;
 		return true;		
 	}
-	else if(pt.phasor < 0)
+	else if(current_status.phasor < 0)
 	{
-		pt.phasor = 0;
+		current_status.phasor = 0;
 		return true;		
 	}
 	
 	return false;
 }
-
-
-
 
 // This routine scales the phasor into the proper range.
 // The phasor always goes from A to B by covering the 0 to 0xffff range
@@ -305,11 +167,11 @@ int16_t scalePhasor()
 	offset = current_status.a;
 	
 	//Scale range and offset into 0 to 1000 uSec
-	range = (range * 1000)/0x0000ffff;
-	offset = (offset * 1000)/0x0000ffff;
+	range = (range * PWM_RANGE_USEC)/ADC_MAX;
+	offset = (offset * PWM_RANGE_USEC)/ADC_MAX;
 		
 	// scale phasor into range
-	result = (pt.phasor * range)/0x0000ffff;
+	result = (current_status.phasor * range)/PHASOR_MAX;
 		
 	//add on offset
 	result += offset;
@@ -319,8 +181,13 @@ int16_t scalePhasor()
 
 
 
-void evalState2()
+void bistableFSM()
 {
+	// This FSM sits in bottom state (A) waiting for switch to close.
+	// When it closes, it transits to B, taking time T.
+	// It stays in B until the switch opens.
+	// It then transits back to A, again taking time T.
+	
 	int16_t delta;
 	
 	delta = calcDelta();
@@ -333,7 +200,7 @@ void evalState2()
 			if(current_status.sw == true)
 			{
 				current_status.st = eATOB;
-				pt.rising         = true;
+				current_status.rising         = true;
 			}
 		}
 		break;
@@ -342,7 +209,7 @@ void evalState2()
 			if(current_status.sw == false)
 			{
 				current_status.st = eBTOA;
-				pt.rising         = false;				
+				current_status.rising         = false;				
 			}
 			
 			// climbing up to b
@@ -357,7 +224,7 @@ void evalState2()
 			if(current_status.sw == false)
 			{
 				current_status.st = eBTOA;
-				pt.rising         = false;
+				current_status.rising         = false;
 			}
 		}
 		break;
@@ -366,7 +233,7 @@ void evalState2()
 			if(current_status.sw == true)
 			{
 				current_status.st = eATOB;
-				pt.rising         = true;
+				current_status.rising         = true;
 			}
 			
 			// dropping down to A
@@ -384,18 +251,99 @@ void evalState2()
 		}
 	}
 	
-	pt.us_val =  scalePhasor();
+	current_status.us_val =  scalePhasor();
 	
 }
+
+void oneshotFSM()
+{
+	// This FSM sits in idle state (A) waiting for switch to close.
+	// When it closes, it does a complete cycle A-to-B-to-A, then waits for switch release.
+	// 
+	
+	int16_t delta;
+	
+	delta = calcDelta();
+	
+	switch(current_status.st)
+	{
+		case eIDLE:
+		{
+			// Advance when we see the switch actuate
+			if(current_status.sw == true)
+			{
+				current_status.st = eATOB;
+				current_status.rising         = true;
+			}
+		}
+		break;
+		case eATOB:
+		{
+			// climbing up to b
+			// only quits when it gets there - ignores switch
+			if( calcNextPhasor(delta) )
+			{
+				current_status.st = eBTOA;
+				current_status.rising         = false;
+			}
+		}
+		break;
+		case eATTOP:
+		{
+			// we shouldn't actually land here,
+			// provide proper action in case we somehow do.
+			current_status.st = eBTOA;
+			current_status.rising         = false;
+		}
+		break;
+		case eBTOA:
+		{
+			// dropping down to A
+			// only quits when it gets there - ignores switch
+			if( calcNextPhasor(delta) )
+			{
+				current_status.st = eWAIT_TO_RESET;
+			}
+		}
+		break;
+		case eWAIT_TO_RESET:
+		{
+			// If the switch is still held
+			// wait for it's release here
+			if(!current_status.sw)
+			{
+				current_status.st = eIDLE;
+			}
+			
+		}
+		break;
+		default:
+		{
+			// TODO: better fix?
+			// debugger catch for invalid states
+			while(1);
+		}
+	}
+	
+	current_status.us_val =  scalePhasor();
+	
+}
+
+// Other FSM candidates
+// toggling - press for A to B, press again for B to A. (good for dir change using continuous. rotation servos)
+// monostable - like one-shot, but 
+// astable - just runs back & forth while switch is held
+
 
 ISR(TIM1_CAPT_vect)
 {
 	// no hardware soure to reset - flag is cleared on execution of this vector
 	
 	// set the pulse width based on switch and pot positions.
-	evalState2();
+	bistableFSM();
+	//oneshotFSM();
 	
-	OCR1A = 1000 + pt.us_val;
+	OCR1A = PWM_MIN_USEC + current_status.us_val;
 	
 }
 
@@ -494,6 +442,17 @@ uint32_t readADC(uint8_t chan)
 	return value;
 }
 
+void readInputs()
+{
+	// read pots
+	current_status.a = readADC(POTA_CHAN);
+	current_status.b = readADC(POTB_CHAN);
+	current_status.t = readADC(POTT_CHAN);
+			
+	// read switch - active low
+	current_status.sw = !(PINA & TRIG_PIN_A_MASK);
+}
+
 int main(void)
 {
 	//DDRA |= 0x02;
@@ -515,23 +474,18 @@ int main(void)
 	current_status.sw = false;
 	current_status.st = eIDLE;
 		
-	current_status.st = eIDLE;
-		
-	pt.phasor = 0;
-	pt.rising = true;
-		
+	current_status.phasor = 0;
+	current_status.rising = true;
+
+	// Read all of the inputs one bevore we enable the FSM,
+	// so it doesn't start with invalid data.
+	readInputs();
+
 	// then enable interrupts
 	sei();
 	
     while(1)
     {
-		// read pots
-		current_status.a = readADC(0); 
-		current_status.b = readADC(3);
-		current_status.t = readADC(7);
-		
-		// read switch - active low
-		current_status.sw = !(PINA & 0x02);
-		
+		readInputs();
     }
 }
