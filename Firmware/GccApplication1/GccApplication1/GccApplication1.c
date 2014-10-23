@@ -9,6 +9,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -344,10 +345,73 @@ void oneshotFSM()
 // monostable - like one-shot, but 
 // astable - just runs back & forth while switch is held
 
+uint32_t readADC(uint8_t chan)
+{
+	uint32_t value;
+	
+	// only allow the pins we've selected to read...
+	if(!( (chan == POTA_CHAN) || (chan == POTB_CHAN) || (chan == POTT_CHAN)))
+	{
+		return 0;
+	}
+	
+	// turn on adc
+	// TODO: perhaps turn on and leave on?
+	ADCSRA = 0x86; // power bit, prescale of 64
+	
+	ADCSRB |= 0x10; // left justify
+	
+	// set digital input disable
+	DIDR0 = 0x89;
+	
+	// input mux, vref selection
+	ADMUX = chan;
 
+	// pause a moment...
+	for(volatile uint8_t i = 0xff; i != 0; i--);
+	
+	// bit 6 starts conversion
+	// write bit 4 to clear it
+	ADCSRA |= 0x50;
+	//ADCSRA = 0x40;
+	
+	// start bit clears when complete
+	while(ADCSRA & 0x40);
+
+	value = ADCW;
+	
+	return value;
+}
+
+
+
+void readInputs()
+{
+	// read pots
+	current_status.a = readADC(POTA_CHAN);
+	current_status.b = readADC(POTB_CHAN);
+	current_status.t = readADC(POTT_CHAN);
+			
+	if(current_status.input_polarity)
+	{
+		// default = active low or switch closure
+		// read switch - active low
+		current_status.input = !(PINA & TRIG_PIN_A_MASK);
+	}
+	else
+	{
+		// active high
+		current_status.input = (PINA & TRIG_PIN_A_MASK);
+	}
+}
+
+
+// Called when the PWM timer is restarted.
+// The PWM output is set when counter is reset.
+// We need to calculate when that output will be cleared.
 ISR(TIM1_CAPT_vect)
 {
-	// no hardware soure to reset - flag is cleared on execution of this vector
+	// no hardware source to reset - flag is cleared on execution of this vector
 	
 	// set the pulse width based on switch and pot positions.
 	if(current_status.mode)
@@ -360,7 +424,10 @@ ISR(TIM1_CAPT_vect)
 	}
 	
 	OCR1A = PWM_MIN_USEC + current_status.us_val;
-	
+
+	// Then read and prepare for next invocation	
+	readInputs();
+
 }
 
 
@@ -420,63 +487,7 @@ void setupPWM(void)
 	GTCCR = 1 << PSR10;
 }
 
-uint32_t readADC(uint8_t chan)
-{
-	uint32_t value;
-	
-	// only allow the pins we've selected to read...
-	if(!( (chan == POTA_CHAN) || (chan == POTB_CHAN) || (chan == POTT_CHAN)))
-	{
-		return 0;
-	}
-	
-	// turn on adc
-	// TODO: perhaps turn on and leave on?
-	ADCSRA = 0x86; // power bit, prescale of 64
-	
-	ADCSRB |= 0x10; // left justify
-	
-	// set digital input disable
-	DIDR0 = 0x89;
-	
-	// input mux, vref selection
-	ADMUX = chan;
 
-	// pause a moment...
-	for(volatile uint8_t i = 0xff; i != 0; i--);
-	
-	// bit 6 starts conversion
-	// write bit 4 to clear it
-	ADCSRA |= 0x50;
-	//ADCSRA = 0x40;
-	
-	// start bit clears when complete
-	while(ADCSRA & 0x40);
-
-	value = ADCW;
-	
-	return value;
-}
-
-void readInputs()
-{
-	// read pots
-	current_status.a = readADC(POTA_CHAN);
-	current_status.b = readADC(POTB_CHAN);
-	current_status.t = readADC(POTT_CHAN);
-			
-	if(current_status.input_polarity)
-	{
-		// default = active low or switch closure
-		// read switch - active low
-		current_status.input = !(PINA & TRIG_PIN_A_MASK);
-	}
-	else
-	{
-		// active high
-		current_status.input = (PINA & TRIG_PIN_A_MASK);
-	}
-}
 
 int main(void)
 {
@@ -530,8 +541,16 @@ int main(void)
 	// then enable interrupts
 	sei();
 	
+	// Turn off some peripherals that we're not using.
+	PRR |= 0x06;//turn off USI and TIM0.
+	
+	
     while(1)
     {
-		readInputs();
+		// Not sure how much difference this was making...maybe a couple mA?
+		// We have to leave the timer running, so we can only idle...
+		sleep_enable();
+		set_sleep_mode(SLEEP_MODE_IDLE);
+		sleep_mode();
     }
 }

@@ -17466,17 +17466,17 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <segment>
 <pinref part="R1" gate="R?" pin="CW"/>
 <pinref part="SUPPLY5" gate="G$1" pin="VCC"/>
-<wire x1="165.1" y1="99.06" x2="165.1" y2="109.22" width="0.2032" layer="91"/>
+<wire x1="165.1" y1="99.06" x2="165.1" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R3" gate="R?" pin="CW"/>
 <pinref part="SUPPLY8" gate="G$1" pin="VCC"/>
-<wire x1="205.74" y1="99.06" x2="205.74" y2="109.22" width="0.2032" layer="91"/>
+<wire x1="205.74" y1="99.06" x2="205.74" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R2" gate="R?" pin="CW"/>
 <pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
-<wire x1="185.42" y1="99.06" x2="185.42" y2="109.22" width="0.2032" layer="91"/>
+<wire x1="185.42" y1="99.06" x2="185.42" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -17538,17 +17538,17 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <segment>
 <pinref part="R1" gate="R?" pin="CCW"/>
 <pinref part="GND3" gate="1" pin="GND"/>
-<wire x1="165.1" y1="88.9" x2="165.1" y2="81.28" width="0.2032" layer="91"/>
+<wire x1="165.1" y1="88.9" x2="165.1" y2="81.28" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R3" gate="R?" pin="CCW"/>
 <pinref part="GND1" gate="1" pin="GND"/>
-<wire x1="205.74" y1="88.9" x2="205.74" y2="81.28" width="0.2032" layer="91"/>
+<wire x1="205.74" y1="88.9" x2="205.74" y2="81.28" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND2" gate="1" pin="GND"/>
 <pinref part="R2" gate="R?" pin="CCW"/>
-<wire x1="185.42" y1="81.28" x2="185.42" y2="88.9" width="0.2032" layer="91"/>
+<wire x1="185.42" y1="81.28" x2="185.42" y2="88.9" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="MOSI/PWM" class="0">
