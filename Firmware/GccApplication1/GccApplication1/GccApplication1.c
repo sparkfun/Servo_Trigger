@@ -14,11 +14,18 @@
 
 // constants for the hardware interfaces
 // Pots for positions A, B and time T.
+// Numbers are ADC channels, not pins
 static const uint8_t POTA_CHAN = 0;
 static const uint8_t POTB_CHAN = 3;
 static const uint8_t POTT_CHAN = 7;
 
+// Pins for configuration solder jumpers
+// "_A_" means in port A, "_B_" means in port B.
+static const uint8_t POLSEL_A_MASK = 0x04;
+static const uint8_t MODESEL_B_MASK = 0x04;
+
 // Input pin for switch or trigger
+// "_A_" means in port A
 static const uint8_t TRIG_PIN_A_MASK = 0x02;
 
 // Timing & ramp gen constants
@@ -47,7 +54,10 @@ typedef struct status
 	int32_t b;
 	int32_t t;
 	
-	bool  sw;
+	bool  input;
+	
+	bool  mode;
+	bool  input_polarity;
 	
 	state st;
 	
@@ -197,7 +207,7 @@ void bistableFSM()
 		case eIDLE:
 		{
 			// Advance when we see the switch actuate
-			if(current_status.sw == true)
+			if(current_status.input == true)
 			{
 				current_status.st = eATOB;
 				current_status.rising         = true;
@@ -206,7 +216,7 @@ void bistableFSM()
 		break;
 		case eATOB:
 		{
-			if(current_status.sw == false)
+			if(current_status.input == false)
 			{
 				current_status.st = eBTOA;
 				current_status.rising         = false;				
@@ -221,7 +231,7 @@ void bistableFSM()
 		break;
 		case eATTOP:
 		{
-			if(current_status.sw == false)
+			if(current_status.input == false)
 			{
 				current_status.st = eBTOA;
 				current_status.rising         = false;
@@ -230,7 +240,7 @@ void bistableFSM()
 		break;
 		case eBTOA:
 		{
-			if(current_status.sw == true)
+			if(current_status.input == true)
 			{
 				current_status.st = eATOB;
 				current_status.rising         = true;
@@ -270,7 +280,7 @@ void oneshotFSM()
 		case eIDLE:
 		{
 			// Advance when we see the switch actuate
-			if(current_status.sw == true)
+			if(current_status.input == true)
 			{
 				current_status.st = eATOB;
 				current_status.rising         = true;
@@ -310,7 +320,7 @@ void oneshotFSM()
 		{
 			// If the switch is still held
 			// wait for it's release here
-			if(!current_status.sw)
+			if(!current_status.input)
 			{
 				current_status.st = eIDLE;
 			}
@@ -340,8 +350,14 @@ ISR(TIM1_CAPT_vect)
 	// no hardware soure to reset - flag is cleared on execution of this vector
 	
 	// set the pulse width based on switch and pot positions.
-	bistableFSM();
-	//oneshotFSM();
+	if(current_status.mode)
+	{
+		bistableFSM();
+	}
+	else
+	{
+		oneshotFSM();	
+	}
 	
 	OCR1A = PWM_MIN_USEC + current_status.us_val;
 	
@@ -409,7 +425,7 @@ uint32_t readADC(uint8_t chan)
 	uint32_t value;
 	
 	// only allow the pins we've selected to read...
-	if(!( (chan == 0) || (chan == 3) || (chan == 7)))
+	if(!( (chan == POTA_CHAN) || (chan == POTB_CHAN) || (chan == POTT_CHAN)))
 	{
 		return 0;
 	}
@@ -449,8 +465,17 @@ void readInputs()
 	current_status.b = readADC(POTB_CHAN);
 	current_status.t = readADC(POTT_CHAN);
 			
-	// read switch - active low
-	current_status.sw = !(PINA & TRIG_PIN_A_MASK);
+	if(current_status.input_polarity)
+	{
+		// default = active low or switch closure
+		// read switch - active low
+		current_status.input = !(PINA & TRIG_PIN_A_MASK);
+	}
+	else
+	{
+		// active high
+		current_status.input = (PINA & TRIG_PIN_A_MASK);
+	}
 }
 
 int main(void)
@@ -466,18 +491,39 @@ int main(void)
 	
 	setupPWM();
 	
-	// set up button pin
-	DDRA &= ~0x02; // PA1 as input
-	PORTA |= 0x02; // pulled up
+	// Set up and read the solder jumpers
+	// Both solder jumpers are normally-open, pulled up externally,
+	// therefore grounded when closed.
+	// Mode selects which FSM is used - 
+	//     pulled up = bistable
+	//     grounded  = monostable.
+	// Polarity indicates polarity of the switch/ pulse input. 
+	//     pulled up = active low or switch closure
+	//     grounded  = active high, no pull.
+	current_status.mode = (PINB & MODESEL_B_MASK);
+	current_status.input_polarity = ( PINA & POLSEL_A_MASK);
 	
-	// configure global data
-	current_status.sw = false;
-	current_status.st = eIDLE;
+	// set up input button pin
+	if(current_status.input_polarity)
+	{
+		// Pulled up, active low.
+		DDRA &= ~0x02; // PA1 as input
+		PORTA |= 0x02; // pulled up
 		
+	}
+	else
+	{
+		// Active high, no pull.
+		DDRA &= ~0x02; // PA1 as input
+	}
+
+	// initialize global data
+	current_status.input  = false;
+	current_status.st     = eIDLE;
 	current_status.phasor = 0;
 	current_status.rising = true;
 
-	// Read all of the inputs one bevore we enable the FSM,
+	// Read all of the inputs one before we enable the FSM,
 	// so it doesn't start with invalid data.
 	readInputs();
 

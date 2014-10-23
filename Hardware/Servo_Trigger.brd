@@ -154,7 +154,7 @@
 <text x="2.54" y="36.83" size="1.27" layer="21" font="vector" ratio="15" align="center-left">GND</text>
 <text x="17.78" y="31.75" size="1.27" layer="21" font="vector" ratio="15" rot="R180" align="center-left">GND</text>
 <text x="17.78" y="36.83" size="1.27" layer="21" font="vector" ratio="15" rot="R180" align="center-left">SIG\</text>
-<text x="18.034" y="13.97" size="1.27" layer="21" font="vector" ratio="15" rot="R180" align="center-left">SW</text>
+<text x="18.034" y="13.97" size="1.27" layer="21" font="vector" ratio="15" rot="R180" align="center-left">IN</text>
 <text x="17.907" y="5.842" size="1.27" layer="21" font="vector" ratio="15" align="bottom-center">ISP</text>
 <text x="18.034" y="16.51" size="1.27" layer="21" font="vector" ratio="15" rot="R180" align="center-left">GND</text>
 <text x="12.7" y="27.94" size="1.27" layer="22" font="vector" ratio="15" rot="SMR270" align="center-left">SJ1-Mode</text>
