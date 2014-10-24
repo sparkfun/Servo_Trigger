@@ -6,6 +6,8 @@ Servo Trigger -
 
 Small board the simplifies the control of RC servos.  Accepts input from switch closures, logic pulses, etc, and actuates a servo in response.  The start and end points, as well as thae transit time between them are all set with potentiometers.
 
+----
+
 The Servo Trigger is a small board you can use to implement simple control over hobby RC servos.  When an external switch or logic signal changes state, the servo trigger causes the servo motor to move from  position A to position B.  You also specify the time that the servo takes to make the transition. 
 
 The Servo Trigger was designed as a collaboration with the kinetic sculptor CTP. ... bio...other details...
@@ -27,17 +29,17 @@ The servo trigger has three main connections.
 
 ### Configuration
 
-There are two different sets of configuration on the servo trigger.  The first configures it for a specific purpose, while the second allows you to tune the performance while you work with the Servo Trigger.
+There are two different sets of configuration for the servo trigger.  The first configures it for a specific purpose, while the second allows you to interactively tune the performance.
 
 #### Initialization Config
 
 There are two solder jumpers on the back of the board that change the behavior of the board.  These jumpers are only checked as the board initializes - being solder jumpers, good practice would suggest that you power the board off before soldering to the pads.
 
-* The first jumper (SJ1) configures how the board responds to switch closures, by altering the Finite State Machine (FSM) used to drive the servo. 
+* The first jumper (SJ1) configures how the board responds to switch closures, by selecting the Finite State Machine (FSM) used to drive the servo. 
 	* SJ1 open (default) selects the "bistable" FSM.  When it first powers up, the board will drive the servo to position A.  When the input is actuated, the board will move the servo to position B.  When it reaches B, it waits for the input to clear, and once cleared, it returns to position B.  If the input is shorter than the transition time, the servo will make an incomplete cycle.
 	* SJ1 closed selects the "monostable" or "one-shot" FSM.  When the input is actuated, the servo will make a complete cycle from A to B, then back to A.  It will not pause at B.  In this case, the cycle always completes, regardless of how long the input is sustained.    
 	
-* The second jumper (SJ2) configured the polarity of the input.  
+* The second jumper (SJ2) configures the polarity of the input.  
 	* SJ2 open (default) configures the input as active-low, internally pulled up.  The is intended to be used with normally-open switches (such at tact switches, microswitches or similar N.O. switches), but can also be used when triggering with external active-low logic signals.
 	* SJ2 closed configures the input as active high, with no pullup.  This is intended for interfacing with external active-high logic signals. 
 
@@ -59,7 +61,7 @@ It's possible for position A to be above B - in which case the rotation will be 
 
 ### Sample Installation
 
-The initial concept behind the Servo Trigger was to build a musical organ out of bellows & whistle assemblies removed from cuckoo clocks.  Organ keys would close switches, which would cause hobby servos to pump the bellows, making the whistle blow.  So let's consider how we would use the Servo Trigger in this application.
+The initial concept behind the Servo Trigger was to build a musical organ out of bellows & whistle assemblies removed from cuckoo clocks.  Organ keys close switches, which cause hobby servos to pump the bellows, making the whistle blow.  So let's consider how we would use the Servo Trigger in this application.
 
 First, lets assume that we have a set of keys from a parlor organ which have each been fitted with N.O. microswitches.
 
@@ -69,11 +71,11 @@ Therefore, we'll configure the board with SJ2 cleared, but with a solder blob cl
 
 The mechanical tuning and assembly is a bit of an interactive process - we wouldn't want to have the motor over-exert the bellows, possibly breaking it.
 
-So to start, consifure the solder blobs.  Then, attach the servo motor and switch to the Servo Trigger board, but leave the motor horn physically disconnected from the bellows.
+So to start, populate the solder blob on SJ1.  Then, attach the servo motor and switch to the Servo Trigger board, but leave the motor horn physically disconnected from the bellows.
 
-Apply power - the servo will jump to position A when the board wakes up.  Now you can turn the pots and actuate the switch, getting the basic motion into a range that won't over-extend the bellows.
+Apply power - the servo will jump to position A when the board wakes up.  Now you can turn the pots and actuate the switch, getting the basic motion into a range that won't over-extend the bellows, and selecting a suitable time interval.
 
-Once you're in the ballpatk, attach the bellows to the horn of the servo and fine-tune the trimpots. 
+Once you're in the ballpark, attach the bellows to the horn of the servo and fine-tune the trimpots. 
  
 Finally, consider adding a dab of silicone or RTV to each of the trimpots, to hold the settings in place.
 
@@ -81,7 +83,7 @@ Finally, consider adding a dab of silicone or RTV to each of the trimpots, to ho
 
 If there's no motion when you actuate the input, check that A and B are not the same, otherwise there's no position change!
 
-If you're feeding the input with a logic signal from an external device, be sure to drive the signal for more than 50 milliseconds - the PWM signal is updated every 50 Sec, and events shorter than that may missed. 
+If you're feeding the input with a logic signal from an external device, be sure to drive the signal for more than 50 milliseconds - the PWM signal is updated every 50 mSec, and events shorter than that may missed. 
 
 It's also possible that T can be shorter than the time it take the servo motor to physically rotate.  In this case, the motor may not physically reach B before returning to A.  Try turning T up to see if a longer transition time allows the motor to turn.
 
@@ -91,6 +93,8 @@ Power supply woes...
 ### Going Further
 
 The firmware on the Servo Trigger was programmed using Atmel Studio 6.6, using AVRGCC 3.4.4.1229 and a JTAGICE3 debug module.
+
+...should also be able to load *.hex or *.elf files from AVRDude with an ATTiny Programmer. 
 
 If the provided FSMs don't meet your needs, you can implement custom ones - follow the pattern used by the functions bistableFSM() and oneshotFSM().
 
