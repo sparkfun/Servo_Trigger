@@ -1,5 +1,5 @@
 /*
- * GccApplication1.c
+ * ServoTrigger.c
  *
  * Created: 7/3/2014 3:43:10 PM
  *  Author: byron.jacquot

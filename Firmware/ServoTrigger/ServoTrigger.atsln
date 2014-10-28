@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Atmel Studio Solution File, Format Version 11.00
+Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "ServoTrigger", "ServoTrigger.cproj", "{AD378655-7D67-400B-A270-D7B92D016C84}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AD378655-7D67-400B-A270-D7B92D016C84}.Debug|AVR.ActiveCfg = Debug|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.Debug|AVR.Build.0 = Debug|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.Release|AVR.ActiveCfg = Release|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
