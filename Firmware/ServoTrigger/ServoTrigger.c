@@ -4,7 +4,20 @@
  * Created: 7/3/2014 3:43:10 PM
  *  Author: byron.jacquot
  *
+ * The Servo Trigger is a small board you can use to implement simple control 
+ * over hobby RC servos.  When an external switch or logic signal changes 
+ * state, the servo trigger causes the servo motor to move from  position A 
+ * to position B.  You also specify the time that the servo takes to make 
+ * the transition. 
  *
+ * The code is designed to function primarily in the interrupt service routine
+ * for PWM1.  It is configured to call the ISR at the start of the cycle
+ * when the output gets set high.  It then calculates and sets the pulse 
+ * width, and refreshes the inputs.
+ *
+ * The main loop of the code is rather simple.  It sets up in I/O and
+ * PWM, then allows the interrupt to run, and puts the processor to 
+ * sleep in between.
  */ 
 
 #include <avr/io.h>
@@ -12,6 +25,8 @@
 #include <avr/sleep.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+/* constant declarations */
 
 // constants for the hardware interfaces
 // Pots for positions A, B and time T.
@@ -39,6 +54,9 @@ static const int32_t PWM_RANGE_USEC = 1000; // diff between min and max PWM puls
 //static const int32_t PWM_RANGE_USEC = 1600; // diff between min and max PWM pulses.
 static const int32_t ADC_MAX        = 0x0000ffff; // ADC values are left-justified into 16-bits
 static const int32_t PHASOR_MAX     = 0x0000ffff; // Phasor counts from 0 to 0xffff
+
+
+/* Structure definitions */
 
 typedef enum state
 {
@@ -69,23 +87,24 @@ typedef struct status
 	
 }status;
 
-// declare global data
+/* Structure declarations*/
+
 status     current_status;
 
-// define some constants for calculations
-
+// declare some constants for calculations
+//
 // Table of timing constants.
 // These are looked up and added to the phasor on each pulse ISR.
 // They are indexed & interpolated using the T pot.
 //
-// Each value was calc'd using the spreadsheet...
+// Each value was calc'd using the spreadsheet: translation.ods
 //
 // the formula per entry is
-// increment entry = PHASOR_MAX/pwm freq in Hz/desired time
+// value = PHASOR_MAX/pwm freq in Hz/desired time
 // ie: increment = 0xffff/50/travel time
 //
-// Table is 17 entries long so we can do linear interpolation between 
-// the N and N+1th entries
+// Table is 17 entries long so we can do linear interpolation between
+// the N and N+1th entries, indexed using MSBs of T value: 0x00 to 0x0f
 static const int16_t timelut[17] =
 {
 	131, 164, 218,  262,  328,  437,  524,  655,
@@ -93,8 +112,15 @@ static const int16_t timelut[17] =
 	26214
 };
 
-// this tells us how far to step in each increment.
-// It's based on the reading of the T pot.
+/*
+	calcDelta()
+
+	Calculate how far to step in each increment, and return the step size.
+	It's based on the reading of the T pot.
+	MS nybble indexes LUT value.
+	Also reads the next adjacent LUT value, then uses next nybble to 
+	fo linear interoplation between them.
+*/
 int16_t calcDelta()
 {
 	// time reading is 12 bits, formatted into the top of 
@@ -119,18 +145,23 @@ int16_t calcDelta()
 }
 
 
+/*
+	bool calcNextPhasor(int16_t increment)
 
+    This calculates the value of the phasor.
+    The phasor is range constrained:
+      - it always goes from 0 to 0xffff (PHASOR_MAX)
+      - it always increases on the A->B traverse
+      - it always decreases on the B->A traverse
+      - it sits at the endpoints (0 or 0xffff) when in the static positions
 
-// This calculates the value of the phasor.
-// The phasor is basically constant:
-//	- it always goes from 0 to 0xffff (PHASOR_MAX)
-//  - it always increases on the A->B traverse
-//  - it always decreases on the B->A traverse
-//  - it sits at the endpoints (0 or 0xffff) when in the static positions
-//
-// The trick is that it will be scaled based on the pot settings before being applied.
-//
-// Returns true when it reaches the end of the segment, to advance FSM
+    This leaves us some resolution, so really slow transitions atill slowly crawl 
+    along, and really quick ones
+
+    The trick is that it will be scaled based on the pot settings before being applied.
+
+    Returns true when segment overflows, to advance FSM.
+*/
 bool calcNextPhasor(int16_t increment)
 {
 	if(current_status.rising)
@@ -142,8 +173,8 @@ bool calcNextPhasor(int16_t increment)
 		current_status.phasor -= increment;
 	}
 	
-	//check for overflow indicating end of segment reached.
-	// truncate & return...
+	// check for overflow indicating end of segment reached.
+	// If so, truncate & return...
 	if(current_status.phasor > PHASOR_MAX)
 	{
 		current_status.phasor = PHASOR_MAX;
@@ -158,11 +189,15 @@ bool calcNextPhasor(int16_t increment)
 	return false;
 }
 
-// This routine scales the phasor into the proper range.
-// The phasor always goes from A to B by covering the 0 to 0xffff range
-// But A and B may by nearer to each other than that
-// and B might even be less than A, reversing things overall.
-// This routine centralizes that translation.
+/*
+    int16_t scalePhasor()
+
+    This routine scales the phasor into the proper range.
+    The phasor always goes from A to B by covering the 0 to 0xffff range
+    But A and B may by nearer to each other than that
+    and B might even be less than A, reversing things overall.
+    This routine centralizes that translation.
+*/
 int16_t scalePhasor()
 {
 	int32_t range;
@@ -172,12 +207,12 @@ int16_t scalePhasor()
 
 	// a, b are 16-bit unsigned values	
 	// range and offset are 32-bit signed.
-	// When a > b, range is negative
-	// thus the result is subtracted from the offset.
+    // When a > b, range is negative
+	// thus the ultimate result will be subtracted from the offset.
 	range = current_status.b - current_status.a;
 	offset = current_status.a;
 	
-	//Scale range and offset into 0 to 1000 uSec
+	//Scale range and offset into uSec values.
 	range = (range * PWM_RANGE_USEC)/ADC_MAX;
 	offset = (offset * PWM_RANGE_USEC)/ADC_MAX;
 		
@@ -185,20 +220,24 @@ int16_t scalePhasor()
 	result = (current_status.phasor * range)/PHASOR_MAX;
 		
 	//add on offset
+    // (or subtract, if a > b)
 	result += offset;
 
 	return result;
 }
 
 
+/* void bistableFSM()
 
+    This FSM sits in bottom state (A) waiting for switch to close.
+	When it closes, it transits to B, taking time T.
+	It stays in B until the switch opens.
+	It then transits back to A, again taking time T.
+
+    On every invocation, it will update the microsecond value in current_status.
+*/
 void bistableFSM()
 {
-	// This FSM sits in bottom state (A) waiting for switch to close.
-	// When it closes, it transits to B, taking time T.
-	// It stays in B until the switch opens.
-	// It then transits back to A, again taking time T.
-	
 	int16_t delta;
 	
 	delta = calcDelta();
@@ -217,6 +256,7 @@ void bistableFSM()
 		break;
 		case eATOB:
 		{
+            // Switch released early
 			if(current_status.input == false)
 			{
 				current_status.st = eBTOA;
@@ -232,6 +272,7 @@ void bistableFSM()
 		break;
 		case eATTOP:
 		{
+            // waiting for switch release
 			if(current_status.input == false)
 			{
 				current_status.st = eBTOA;
@@ -241,6 +282,7 @@ void bistableFSM()
 		break;
 		case eBTOA:
 		{
+            // Switch re-closed before reaching A
 			if(current_status.input == true)
 			{
 				current_status.st = eATOB;
@@ -266,12 +308,16 @@ void bistableFSM()
 	
 }
 
+/* void bistableFSM()
+
+    This FSM sits in idle state (A) waiting for switch to close.
+    When it closes, it does a complete cycle A-to-B-to-A, then waits for switch release.
+
+    On every invocation, it will update the microsecond value in current_status.
+*/
+
 void oneshotFSM()
 {
-	// This FSM sits in idle state (A) waiting for switch to close.
-	// When it closes, it does a complete cycle A-to-B-to-A, then waits for switch release.
-	// 
-	
 	int16_t delta;
 	
 	delta = calcDelta();
@@ -340,11 +386,12 @@ void oneshotFSM()
 	
 }
 
-// Other FSM candidates
-// toggling - press for A to B, press again for B to A. (good for dir change using continuous. rotation servos)
-// monostable - like one-shot, but 
+// Other FSM candidates?
+// toggling - press for A to B, press again for B to A. (good for dir change using continuous rotation servos)
+// monostable - like one-shot, but doesn't have to complete cycle is released before it reaches B?
 // astable - just runs back & forth while switch is held
 
+// Read a given channel of ADC.
 uint32_t readADC(uint8_t chan)
 {
 	uint32_t value;
@@ -384,7 +431,11 @@ uint32_t readADC(uint8_t chan)
 }
 
 
+/* void readInputs()
 
+    Read the 3 pots and switch input.
+
+*/
 void readInputs()
 {
 	// read pots
@@ -392,6 +443,7 @@ void readInputs()
 	current_status.b = readADC(POTB_CHAN);
 	current_status.t = readADC(POTT_CHAN);
 			
+    
 	if(current_status.input_polarity)
 	{
 		// default = active low or switch closure
@@ -405,15 +457,23 @@ void readInputs()
 	}
 }
 
+/* ISR(TIM1_CAPT_vect)
 
-// Called when the PWM timer is restarted.
-// The PWM output is set when counter is reset.
-// We need to calculate when that output will be cleared.
+    Using some magic of AVRGCC, this gets set up as the ISR for Timer1 (aka PWM1).
+ 
+    This is where all of the runtime work is done.
+
+    Called when the PWM timer is restarted.
+    The PWM output is set when counter is reset.
+    We need to calculate when that output will be cleared.
+*/
 ISR(TIM1_CAPT_vect)
 {
 	// no hardware source to reset - flag is cleared on execution of this vector
 	
 	// set the pulse width based on switch and pot positions.
+    //
+    // run the FSM - it'll calculate the next value for the uSec timer
 	if(current_status.mode)
 	{
 		bistableFSM();
@@ -423,6 +483,7 @@ ISR(TIM1_CAPT_vect)
 		oneshotFSM();	
 	}
 	
+    // Apply the uSec timer to the PWM hardware.
 	OCR1A = PWM_MIN_USEC + current_status.us_val;
 
 	// Then read and prepare for next invocation	

@@ -24,6 +24,7 @@ The servo trigger has three main connections.
 * Across from that, at the upper left corner, is the 3-pin connection for a standard hobby servo.  You'll want to doublecheck the color code  for your specific servo, but the common standards are as follows: 
 	* White, Red, Black - Align the black wire with the `GND` pin.
 	* Orange, Red, Brown - Align the brown wire with the `GND` pin.
+	* Black, black, black - Strong candidate for checking the mfr's spec.  A Hitec with this has a little polarizing tab on the plug, which indicated the signal line - plug in with the tab swsy from ground. 
 * The third important connection is the trigger input.  In ordinary applications, you'll wire a normally open single pole switch between these contacts. 
 * There is also a fourth connection - the 2x3 header for an ISP programmer.  The board should be useful for most applications without reprogramming, but in cases where it needs to be changed, you can use this header with an AVR programmer to update the firmware.
 
