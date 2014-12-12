@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.5.0">
+<eagle version="7.1.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -64,6 +64,7 @@
 <layer number="54" name="bGND_GNDA" color="1" fill="9" visible="no" active="no"/>
 <layer number="56" name="wert" color="7" fill="1" visible="no" active="no"/>
 <layer number="57" name="tCAD" color="7" fill="1" visible="no" active="no"/>
+<layer number="90" name="Modules" color="5" fill="1" visible="yes" active="yes"/>
 <layer number="91" name="Nets" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="92" name="Busses" color="1" fill="1" visible="yes" active="yes"/>
 <layer number="93" name="Pins" color="2" fill="1" visible="no" active="yes"/>
@@ -15798,6 +15799,7 @@ This is the reduced ISP connector for AVR programming. Common on Arduino. This f
 </connects>
 <technologies>
 <technology name="">
+<attribute name="PROD_ID" value="CONN-09863" constant="no"/>
 <attribute name="SKU" value="PRT-09914" constant="no"/>
 </technology>
 </technologies>
@@ -16927,6 +16929,26 @@ For COM-09806 in the SparkFun catalog&lt;br&gt;</description>
 <text x="-2.159" y="1.27" size="0.4064" layer="25">&gt;NAME</text>
 <text x="-2.159" y="0" size="0.4064" layer="27">&gt;VALUE</text>
 </package>
+<package name="STAND-OFF">
+<description>&lt;b&gt;Stand Off&lt;/b&gt;&lt;p&gt;
+This is the mechanical footprint for a #4 phillips button head screw. Use the keepout ring to avoid running the screw head into surrounding components. SKU : PRT-00447</description>
+<wire x1="0" y1="1.8542" x2="0" y2="-1.8542" width="0.2032" layer="41" curve="-180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="41" curve="-180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="42" curve="180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="42" curve="-180"/>
+<circle x="0" y="0" radius="2.794" width="0.127" layer="39"/>
+<hole x="0" y="0" drill="3.302"/>
+</package>
+<package name="STAND-OFF-TIGHT">
+<description>&lt;b&gt;Stand Off&lt;/b&gt;&lt;p&gt;
+This is the mechanical footprint for a #4 phillips button head screw. Use the keepout ring to avoid running the screw head into surrounding components. SKU : PRT-00447</description>
+<wire x1="0" y1="1.8542" x2="0" y2="-1.8542" width="0.2032" layer="41" curve="-180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="41" curve="-180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="42" curve="180"/>
+<wire x1="0" y1="-1.8542" x2="0" y2="1.8542" width="0.2032" layer="42" curve="-180"/>
+<circle x="0" y="0" radius="2.794" width="0.127" layer="39"/>
+<hole x="0" y="0" drill="3.048"/>
+</package>
 </packages>
 <symbols>
 <symbol name="TRIMPOT-1">
@@ -16947,6 +16969,9 @@ For COM-09806 in the SparkFun catalog&lt;br&gt;</description>
 <pin name="WIPER" x="0" y="5.08" visible="off" length="short" direction="pas" swaplevel="1" rot="R270"/>
 <text x="-11.43" y="1.4986" size="1.778" layer="95">&gt;NAME</text>
 <text x="-3.81" y="-3.302" size="1.778" layer="96">&gt;VALUE</text>
+</symbol>
+<symbol name="STAND-OFF">
+<circle x="0" y="0" radius="1.27" width="0.254" layer="94"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -17069,6 +17094,25 @@ For COM-09806 in the SparkFun catalog&lt;br&gt;</description>
 <attribute name="PROD_ID" value="RES-09285"/>
 <attribute name="VALUE" value="10k"/>
 </technology>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="STAND-OFF" prefix="STANDOFF">
+<description>&lt;b&gt;#4 Stand Off&lt;/b&gt;&lt;p&gt;
+This is the mechanical footprint for a #4 phillips button head screw. Use the keepout ring to avoid running the screw head into surrounding components. SKU : PRT-00447</description>
+<gates>
+<gate name="G$1" symbol="STAND-OFF" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="STAND-OFF">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="TIGHT" package="STAND-OFF-TIGHT">
+<technologies>
+<technology name=""/>
 </technologies>
 </device>
 </devices>
@@ -17230,7 +17274,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="10KOHM1/10W1%(0603)" prefix="R" uservalue="yes">
+<deviceset name="10KOHM-1/10W-1%(0603)" prefix="R" uservalue="yes">
 <description>RES-00824</description>
 <gates>
 <gate name="G$1" symbol="RESISTOR" x="0" y="0"/>
@@ -17263,7 +17307,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </classes>
 <parts>
 <part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device=""/>
-<part name="R4" library="SparkFun-Resistors" deviceset="10KOHM1/10W1%(0603)" device="0603" value="10k"/>
+<part name="R4" library="SparkFun-Resistors" deviceset="10KOHM-1/10W-1%(0603)" device="0603" value="10K"/>
 <part name="JP9" library="SparkFun-Connectors" deviceset="AVR_SPI_PRG_6" device="PTH" value=""/>
 <part name="U1" library="SparkFun-DigitalIC" deviceset="ATTINY84" device=""/>
 <part name="SUPPLY1" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
@@ -17297,9 +17341,9 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="LOGO2" library="SparkFun-Aesthetics" deviceset="SFE_LOGO_NAME" device=".2_INCH"/>
 <part name="FID1" library="SparkFun-Aesthetics" deviceset="FIDUCIAL" device="UFIDUCIAL"/>
 <part name="FID2" library="SparkFun-Aesthetics" deviceset="FIDUCIAL" device="UFIDUCIAL"/>
-<part name="R5" library="SparkFun-Resistors" deviceset="10KOHM1/10W1%(0603)" device="0603" value="10k"/>
+<part name="R5" library="SparkFun-Resistors" deviceset="10KOHM-1/10W-1%(0603)" device="0603" value="10K"/>
 <part name="SUPPLY11" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
-<part name="R6" library="SparkFun-Resistors" deviceset="10KOHM1/10W1%(0603)" device="0603" value="10k"/>
+<part name="R6" library="SparkFun-Resistors" deviceset="10KOHM-1/10W-1%(0603)" device="0603" value="10K"/>
 <part name="SUPPLY12" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
 <part name="SJ1" library="SparkFun-Passives" deviceset="JUMPER-PAD-2-NO" device="YES_SILK" value="N.O."/>
 <part name="SJ2" library="SparkFun-Passives" deviceset="JUMPER-PAD-2-NO" device="YES_SILK" value="N.O."/>
@@ -17308,13 +17352,21 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="C5" library="SparkFun-Capacitors" deviceset="0.1UF-25V(+80/-20%)(0603)" device="" value="0.1uF"/>
 <part name="C1" library="SparkFun-Capacitors" deviceset="10UF-16V-10%(TANT)" device="" value="10uF"/>
 <part name="Y1" library="SparkFun-FreqCtrl" deviceset="RESONATOR" device="16MHZ" value="16MHZ"/>
+<part name="STANDOFF1" library="SparkFun-Electromechanical" deviceset="STAND-OFF" device=""/>
+<part name="STANDOFF2" library="SparkFun-Electromechanical" deviceset="STAND-OFF" device=""/>
+<part name="STANDOFF3" library="SparkFun-Electromechanical" deviceset="STAND-OFF" device=""/>
+<part name="STANDOFF4" library="SparkFun-Electromechanical" deviceset="STAND-OFF" device=""/>
+<part name="JP4" library="SparkFun-Connectors" deviceset="M02" device="1X02_NO_SILK" value="M021X02_NO_SILK"/>
+<part name="SUPPLY13" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
+<part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
 <plain>
 <text x="165.1" y="7.62" size="2.54" layer="94" font="vector">Byron Jacquot</text>
-<text x="238.76" y="7.62" size="2.54" layer="94" font="vector">V01</text>
-<text x="7.62" y="177.8" size="2.54" layer="94" font="vector">Power Input</text>
+<text x="238.76" y="7.62" size="2.54" layer="94" font="vector">V10</text>
+<text x="7.62" y="177.8" size="2.54" layer="94" font="vector">Power Input/
+Daisy-Chain Output</text>
 <text x="63.5" y="175.26" size="2.54" layer="94" font="vector">ISP Connection</text>
 <text x="157.48" y="127" size="2.54" layer="94" font="vector">Control Potentiometers</text>
 <text x="63.5" y="127" size="2.54" layer="94" font="vector">Microcontroller</text>
@@ -17351,6 +17403,9 @@ use with a normally-open switch or active-high logic.
 -Closed is for normally closed switches, or active low-logic,</text>
 <text x="124.46" y="139.7" size="1.27" layer="94">Pulled up internally in processor 
 Datasheet says Rup is in the 20K to 50K range.</text>
+<text x="5.08" y="139.7" size="1.27" layer="94">Expecting 5VDC power.
+Current consumed is dependent 
+on servo type and loading.</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
@@ -17385,9 +17440,11 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <instance part="GND4" gate="1" x="142.24" y="154.94"/>
 <instance part="GND5" gate="1" x="210.82" y="147.32"/>
 <instance part="SUPPLY9" gate="G$1" x="210.82" y="165.1"/>
-<instance part="JP3" gate="G$1" x="22.86" y="157.48"/>
-<instance part="SUPPLY10" gate="G$1" x="33.02" y="165.1"/>
-<instance part="GND6" gate="1" x="33.02" y="152.4"/>
+<instance part="JP3" gate="G$1" x="7.62" y="157.48" smashed="yes">
+<attribute name="NAME" x="5.08" y="163.322" size="1.778" layer="95"/>
+</instance>
+<instance part="SUPPLY10" gate="G$1" x="17.78" y="165.1"/>
+<instance part="GND6" gate="1" x="17.78" y="152.4"/>
 <instance part="LOGO1" gate="G$1" x="160.02" y="45.72"/>
 <instance part="LOGO2" gate="G$1" x="190.5" y="35.56"/>
 <instance part="FID1" gate="G$1" x="246.38" y="17.78"/>
@@ -17409,6 +17466,15 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <instance part="C5" gate="G$1" x="119.38" y="91.44"/>
 <instance part="C1" gate="G$1" x="129.54" y="93.98"/>
 <instance part="Y1" gate="G$1" x="20.32" y="83.82"/>
+<instance part="STANDOFF1" gate="G$1" x="243.84" y="25.4"/>
+<instance part="STANDOFF2" gate="G$1" x="246.38" y="25.4"/>
+<instance part="STANDOFF3" gate="G$1" x="246.38" y="27.94"/>
+<instance part="STANDOFF4" gate="G$1" x="243.84" y="27.94"/>
+<instance part="JP4" gate="G$1" x="43.18" y="157.48" smashed="yes" rot="MR0">
+<attribute name="NAME" x="45.72" y="163.322" size="1.778" layer="95" rot="MR0"/>
+</instance>
+<instance part="SUPPLY13" gate="G$1" x="33.02" y="165.1"/>
+<instance part="GND9" gate="1" x="33.02" y="152.4"/>
 </instances>
 <busses>
 </busses>
@@ -17450,8 +17516,8 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <segment>
 <pinref part="JP3" gate="G$1" pin="2"/>
 <pinref part="SUPPLY10" gate="G$1" pin="VCC"/>
-<wire x1="30.48" y1="160.02" x2="33.02" y2="160.02" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="160.02" x2="33.02" y2="165.1" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="160.02" x2="17.78" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="17.78" y1="160.02" x2="17.78" y2="165.1" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R5" gate="G$1" pin="2"/>
@@ -17477,6 +17543,12 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="R2" gate="R?" pin="CW"/>
 <pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
 <wire x1="185.42" y1="99.06" x2="185.42" y2="109.22" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="JP4" gate="G$1" pin="2"/>
+<pinref part="SUPPLY13" gate="G$1" pin="VCC"/>
+<wire x1="35.56" y1="160.02" x2="33.02" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="160.02" x2="33.02" y2="165.1" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -17522,8 +17594,8 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <segment>
 <pinref part="JP3" gate="G$1" pin="1"/>
 <pinref part="GND6" gate="1" pin="GND"/>
-<wire x1="30.48" y1="157.48" x2="33.02" y2="157.48" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="157.48" x2="33.02" y2="154.94" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="157.48" x2="17.78" y2="157.48" width="0.1524" layer="91"/>
+<wire x1="17.78" y1="157.48" x2="17.78" y2="154.94" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SJ1" gate="G$1" pin="1"/>
@@ -17549,6 +17621,12 @@ Datasheet says Rup is in the 20K to 50K range.</text>
 <pinref part="GND2" gate="1" pin="GND"/>
 <pinref part="R2" gate="R?" pin="CCW"/>
 <wire x1="185.42" y1="81.28" x2="185.42" y2="88.9" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="JP4" gate="G$1" pin="1"/>
+<pinref part="GND9" gate="1" pin="GND"/>
+<wire x1="35.56" y1="157.48" x2="33.02" y2="157.48" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="157.48" x2="33.02" y2="154.94" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="MOSI/PWM" class="0">

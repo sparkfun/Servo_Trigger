@@ -42,7 +42,9 @@ Use interactive mode to `read flash 0 1000`.  It'll dump a bunch of hex.  If it'
 
 ### Fuses 
 
-You can get to the fuses using the follwing names for the memories (via the read or dump commands):
+Should you need them, the fuses are available from avrdude.
+
+You can get to the fuses using the following names for the memories (via the read or dump commands):
 
 * lfuse - lower fuse byte.
 * hfuse - higher fuse byte.
