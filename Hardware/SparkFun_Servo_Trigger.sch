@@ -137,6 +137,7 @@
 <layer number="250" name="Descript" color="3" fill="1" visible="no" active="no"/>
 <layer number="251" name="SMDround" color="12" fill="11" visible="no" active="no"/>
 <layer number="254" name="cooling" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="255" name="routoute" color="7" fill="1" visible="yes" active="yes"/>
 </layers>
 <schematic xreflabel="%F%N/%S.%C%R" xrefpart="/%S.%C%R">
 <libraries>
@@ -153,6 +154,8 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <text x="-20.32" y="5.08" size="1.778" layer="51">Released under the Creative Commons Attribution Share-Alike 4.0 License</text>
 <text x="0" y="2.54" size="1.778" layer="51"> https://creativecommons.org/licenses/by-sa/4.0/</text>
 <text x="11.43" y="0" size="1.778" layer="51">Designed by:</text>
+<text x="29.21" y="10.16" size="1.27" layer="16" font="vector" ratio="15" rot="SMR0">&gt;VERSION</text>
+<text x="26.67" y="0" size="1.778" layer="51">&gt;DESIGNER</text>
 </package>
 <package name="OSHW-LOGO-S">
 <polygon width="0.15" layer="21">
@@ -12134,6 +12137,9 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <vertex x="4.64" y="6.55"/>
 </polygon>
 </package>
+<package name="DUMMY">
+<description>NOTHING HERE!!! For when you want a symbol with no package as an option against symbols with a package.</description>
+</package>
 </packages>
 <symbols>
 <symbol name="LETTER_L">
@@ -12173,6 +12179,8 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <text x="2.54" y="27.94" size="1.9304" layer="94">Attribution Share-Alike 4.0 License</text>
 <text x="2.54" y="24.13" size="1.9304" layer="94"> https://creativecommons.org/licenses/by-sa/4.0/</text>
 <text x="1.27" y="11.43" size="2.54" layer="94">Design by:</text>
+<text x="5.08" y="6.604" size="2.54" layer="94">&gt;DESIGNER</text>
+<text x="88.9" y="6.604" size="2.54" layer="94" font="vector">&gt;VERSION</text>
 </symbol>
 <symbol name="VCC">
 <wire x1="0.762" y1="1.27" x2="0" y2="2.54" width="0.254" layer="94"/>
@@ -16817,17 +16825,28 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="FRAME-LETTER" prefix="FRAME">
+<deviceset name="FRAME-LETTER" prefix="FRAME" uservalue="yes">
 <description>&lt;b&gt;Schematic Frame&lt;/b&gt;&lt;p&gt;
 Standard 8.5x11 US Letter frame</description>
 <gates>
 <gate name="G$1" symbol="LETTER_L" x="0" y="0"/>
-<gate name="G$2" symbol="DOCFIELD" x="147.32" y="0" addlevel="must"/>
+<gate name="V" symbol="DOCFIELD" x="147.32" y="0" addlevel="must"/>
 </gates>
 <devices>
 <device name="" package="CREATIVE_COMMONS">
 <technologies>
-<technology name=""/>
+<technology name="">
+<attribute name="DESIGNER" value="NAME" constant="no"/>
+<attribute name="VERSION" value="v01" constant="no"/>
+</technology>
+</technologies>
+</device>
+<device name="NO_PACKAGE" package="DUMMY">
+<technologies>
+<technology name="">
+<attribute name="DESIGNER" value="Nobody" constant="no"/>
+<attribute name="VERSION" value="v01" constant="no"/>
+</technology>
 </technologies>
 </device>
 </devices>
@@ -19880,7 +19899,10 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </class>
 </classes>
 <parts>
-<part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device=""/>
+<part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device="">
+<attribute name="DESIGNER" value="Byron Jacquot"/>
+<attribute name="VERSION" value="V10"/>
+</part>
 <part name="R4" library="SparkFun-Resistors" deviceset="10KOHM-1/10W-1%(0603)" device="0603" value="10K"/>
 <part name="JP9" library="SparkFun-Connectors" deviceset="AVR_SPI_PRG_6" device="PTH" value=""/>
 <part name="U1" library="SparkFun-DigitalIC" deviceset="ATTINY84" device=""/>
@@ -19938,8 +19960,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <sheets>
 <sheet>
 <plain>
-<text x="165.1" y="7.62" size="2.54" layer="94" font="vector">Byron Jacquot</text>
-<text x="238.76" y="7.62" size="2.54" layer="94" font="vector">V10</text>
 <text x="7.62" y="177.8" size="2.54" layer="94" font="vector">Power Input/
 Daisy-Chain Output</text>
 <text x="63.5" y="175.26" size="2.54" layer="94" font="vector">ISP Connection</text>
@@ -19996,7 +20016,7 @@ is actuated (whether it stays there or not is
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
-<instance part="FRAME1" gate="G$2" x="147.32" y="0"/>
+<instance part="FRAME1" gate="V" x="147.32" y="0"/>
 <instance part="R4" gate="G$1" x="53.34" y="104.14" smashed="yes" rot="MR90">
 <attribute name="NAME" x="51.562" y="102.616" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="56.896" y="101.854" size="1.778" layer="96" rot="R90"/>
@@ -20022,7 +20042,9 @@ is actuated (whether it stays there or not is
 <instance part="SUPPLY5" gate="G$1" x="165.1" y="109.22"/>
 <instance part="SUPPLY6" gate="G$1" x="185.42" y="109.22"/>
 <instance part="SUPPLY8" gate="G$1" x="205.74" y="109.22"/>
-<instance part="JP1" gate="G$1" x="152.4" y="162.56" rot="R180"/>
+<instance part="JP1" gate="G$1" x="152.4" y="162.56" smashed="yes" rot="R180">
+<attribute name="NAME" x="154.94" y="156.718" size="1.778" layer="95" rot="R180"/>
+</instance>
 <instance part="JP2" gate="G$1" x="198.12" y="157.48"/>
 <instance part="GND4" gate="1" x="142.24" y="154.94"/>
 <instance part="GND5" gate="1" x="210.82" y="147.32"/>
