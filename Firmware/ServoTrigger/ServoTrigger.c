@@ -107,9 +107,11 @@ status     current_status;
 // the N and N+1th entries, indexed using MSBs of T value: 0x00 to 0x0f
 static const int16_t timelut[17] =
 {
-	131, 164, 218,  262,  328,  437,  524,  655,
-	749, 874, 1049, 1311, 1748, 2621, 5243, 13107,
-	26214
+    437,  583,   749,   1049,
+    1311, 1748,  2185,  2621,
+    3277, 4369,  5243,  6554,
+    8738, 10923, 13107, 16384,
+    26214
 };
 
 /*
@@ -308,14 +310,13 @@ void bistableFSM()
 	
 }
 
-/* void bistableFSM()
+/* void oneshotFSM()
 
     This FSM sits in idle state (A) waiting for switch to close.
     When it closes, it does a complete cycle A-to-B-to-A, then waits for switch release.
 
     On every invocation, it will update the microsecond value in current_status.
 */
-
 void oneshotFSM()
 {
 	int16_t delta;
@@ -386,6 +387,123 @@ void oneshotFSM()
 	
 }
 
+/* bool edgeDetect()
+
+    A simple edge detector for the ctpFSM.
+    Other FSMs have been level sensitive
+
+*/
+bool edgeDetect()
+{
+    static uint8_t deb_count = 0;
+
+    if(current_status.input == 0)
+    {
+        deb_count = 0;
+    }
+    else if(current_status.input == 1)
+    {
+        
+        // increment counter
+        deb_count++;
+                
+        if(deb_count == 2)
+        {
+            // we call 2 in a row a rising edge
+            return true;            
+        }
+        else if(deb_count >= 3)
+        {
+            // make it stick at 3 so it can't overflow
+            deb_count = 3;
+        }
+    }
+
+    return false;
+}
+
+/* void ctpFSM()
+
+    Custom FSM for CTP's cuckoo bellows project.
+
+    This FSM sits in idle state (A) waiting for switch to close.
+    This is similar to the oneshotFSM, but differs a bit in the retriggering behavior.
+    
+    When switch closes, it does a complete cycle A-to-B.
+    It then begins a B-to-A, but watches for additional switch closures.  If found,
+    it will jump back to the A-to-B state.  This makes it more responsive to repeated 
+    switch actuations, because it doesn't need to complete the B-to-A cycle.
+
+    On every invocation, it will update the microsecond value in current_status.
+*/
+void ctpFSM()
+{
+	int16_t delta;
+	
+	delta = calcDelta();
+	
+    bool edge = edgeDetect();
+    
+	switch(current_status.st)
+	{
+		case eIDLE:
+		{
+			// Advance when we see the switch actuate
+			if(edge)
+			{
+				current_status.st = eATOB;
+				current_status.rising         = true;
+			}
+		}
+		break;
+		case eATOB:
+		{
+			// climbing up to b
+			// only quits when it gets there - ignores switch
+			if( calcNextPhasor(delta) )
+			{
+                // It didn't do so well when it jumped straight to BTOA...
+				current_status.st = eATTOP;
+				current_status.rising         = false;
+			}
+		}
+		break;
+		case eATTOP:
+		{
+			// we shouldn't actually land here,
+			// provide proper action in case we somehow do.
+			current_status.st = eBTOA;
+			current_status.rising         = false;
+		}
+		break;
+		case eBTOA:
+		{
+			// dropping down to A,
+            // but if we see new edge, return to B.
+			if(edge)
+			{
+    			current_status.st     = eATOB;
+    			current_status.rising = true;
+			}
+			if( calcNextPhasor(delta) )
+			{
+				current_status.st = eIDLE;
+			}
+		}
+		break;
+		default:
+		{
+			// TODO: better fix?
+			// debugger catch for invalid states
+			while(1);
+		}
+	}
+	
+	current_status.us_val =  scalePhasor();
+	
+}
+
+
 // Other FSM candidates?
 // toggling - press for A to B, press again for B to A. (good for dir change using continuous rotation servos)
 // monostable - like one-shot, but doesn't have to complete cycle is released before it reaches B?
@@ -443,11 +561,12 @@ void readInputs()
 	current_status.b = readADC(POTB_CHAN);
 	current_status.t = readADC(POTT_CHAN);
 			
-    
+    // Input can be jumpered for active low or active high.
+    // We'll correct for that here
 	if(current_status.input_polarity)
 	{
 		// default = active low or switch closure
-		// read switch - active low
+		// read switch - active low, so invert level
 		current_status.input = !(PINA & TRIG_PIN_A_MASK);
 	}
 	else
@@ -480,7 +599,8 @@ ISR(TIM1_CAPT_vect)
 	}
 	else
 	{
-		oneshotFSM();	
+		//oneshotFSM();	
+        ctpFSM();	
 	}
 	
     // Apply the uSec timer to the PWM hardware.
