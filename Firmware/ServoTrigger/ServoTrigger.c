@@ -1,23 +1,53 @@
 /*
- * ServoTrigger.c
- *
- * Created: 7/3/2014 3:43:10 PM
- *  Author: byron.jacquot
- *
- * The Servo Trigger is a small board you can use to implement simple control 
- * over hobby RC servos.  When an external switch or logic signal changes 
- * state, the servo trigger causes the servo motor to move from  position A 
- * to position B.  You also specify the time that the servo takes to make 
- * the transition. 
- *
- * The code is designed to function primarily in the interrupt service routine
- * for PWM1.  It is configured to call the ISR at the start of the cycle
- * when the output gets set high.  It then calculates and sets the pulse 
- * width, and refreshes the inputs.
- *
- * The main loop of the code is rather simple.  It sets up in I/O and
- * PWM, then allows the interrupt to run, and puts the processor to 
- * sleep in between.
+ ServoTrigger.c
+ 
+ Created: 7/3/2014 3:43:10 PM
+ Author: byron.jacquot
+ 
+ The Servo Trigger is a small board you can use to implement simple control 
+ over hobby RC servos.  When an external switch or logic signal changes 
+ state, the servo trigger causes the servo motor to move from  position A 
+ to position B.  You also specify the time that the servo takes to make 
+ the transition. 
+ 
+ The code is designed to function primarily in the interrupt service routine
+ for PWM1.  PWM hardware is configured to call the ISR at the start of the cycle
+ when the output gets set high.  It then calculates and sets the pulse 
+ width, and refreshes the ADC inputs.
+ 
+ The main loop of the code is rather simple.  It sets up in I/O and
+ PWM, then allows the interrupt to run, and puts the processor to 
+ sleep in between.
+ 
+ BUILDING & CONFIGURATION:
+ There are more possible state machines than can fit in memory all at once.
+ 2 FSMs can be present at a time - selected using the MODE solder jumper on the back
+ of the PCB.  They are known as FSMA (jumper cleared - default) and FSMB (jumper soldered).
+ 
+ The FSMs are selected by defining compile-time macros in the build scripts. 
+ To change functions, find the -D directives, and set them to the names of the
+ desired functions. 
+ In AVRStudio, this is in the project tab->toolchain->AVR/GNU C compiler->symbols dialog. 
+ In the command-line AVR-GCC, it's in the *.c->*.o rule in the makefile.
+ 
+ You can select the FSMs for the two slots by changing the definition of the "FSMA" and
+ "FSMB" macros.  These macros should be set to the name of the FSM function for the desired slot.
+ There are several candidate FSM names:
+  - bistableFSM
+  - oneshotFSM
+  - ctpFSM
+  - togglingFSM
+  - astableFSM
+ 
+ See the product documentation for more details about each FSM.
+ 
+ All of these FSMs are implemented in the source file - rather than building a bunch of 
+ convoluted macros to include the right functions, we're taking advantage of the 
+ linker-elision feature of GCC - functions that are never called will be omitted from the 
+ output - you'll see the names in the "discarded sections" of the *.MAP file.  It's very
+ dependent of compiling and linking with the right flags set.
+ See this link for more info: https://gcc.gnu.org/ml/gcc-help/2003-08/msg00128.html
+ 
  */ 
 
 #include <avr/io.h>
@@ -48,48 +78,22 @@ static const uint8_t TRIG_PIN_A_MASK = 0x02;
 // Pulse width = PWM_MIN_USEC + PWM_RANGE_USEC
 // some servos have a wider range than others - 1 to 2 msec is save for all tested so far.
 // .7 to 2.3 msec will drive some farther, but will make others very unhappy, possibly grinding gears.
+
+#ifdef SAFERANGE
+// Some servos are very unhappy if pulses leave the 1 to 2 mSec range.  
+// SAFERANGE constrains pulses to that range.
 static const int32_t PWM_MIN_USEC   = 1000; // narrowest pulse is 1000 usec
 static const int32_t PWM_RANGE_USEC = 1000; // diff between min and max PWM pulses.
-//static const int32_t PWM_MIN_USEC   = 700; // narrowest pulse is 1000 usec
-//static const int32_t PWM_RANGE_USEC = 1600; // diff between min and max PWM pulses.
+#else
+// some servos are less fragile/critical - if you want shorter/wider pulses, 
+// you can enable these and adjust the values
+static const int32_t PWM_MIN_USEC   = 700; // narrowest pulse is 700 usec
+static const int32_t PWM_RANGE_USEC = 1600; // diff between min and max PWM pulses.
+#endif
+
+
 static const int32_t ADC_MAX        = 0x0000ffff; // ADC values are left-justified into 16-bits
 static const int32_t PHASOR_MAX     = 0x0000ffff; // Phasor counts from 0 to 0xffff
-
-
-/* Structure definitions */
-
-typedef enum state
-{
-	eIDLE = 0,
-	eATOB,
-	eATTOP,
-	eBTOA,
-	eWAIT_TO_RESET	
-}state;
-
-typedef struct status 
-{
-	int32_t a;
-	int32_t b;
-	int32_t t;
-	
-	bool  input;
-	
-	bool  mode;
-	bool  input_polarity;
-	
-	state st;
-	
-	int32_t phasor; // counts 0 to 0xffff - needs to be singed to catch overflow
-	bool    rising; // are we rising or falling?
-	
-	int32_t us_val; // how many microseconds to add to the PWM ?
-	
-}status;
-
-/* Structure declarations*/
-
-status     current_status;
 
 // declare some constants for calculations
 //
@@ -104,7 +108,8 @@ status     current_status;
 // ie: increment = 0xffff/50/travel time
 //
 // Table is 17 entries long so we can do linear interpolation between
-// the N and N+1th entries, indexed using MSBs of T value: 0x00 to 0x0f
+// the N and N+1th entries, indexed using 4 MSBs of T value, interpolated
+// using the next 4 bits.
 static const int16_t timelut[17] =
 {
     437,  583,   749,   1049,
@@ -113,6 +118,46 @@ static const int16_t timelut[17] =
     8738, 10923, 13107, 16384,
     26214
 };
+
+
+/* Structure definitions */
+
+// All the FSMs use the same group of states - some may not use all states.
+typedef enum state
+{
+	eIDLE = 0,
+	eATOB,
+	eATTOP,
+	eBTOA,
+	eWAIT_TO_RESET	
+}state;
+
+// status encapsulates what would otherwise be global variables.
+typedef struct status 
+{
+	int32_t a; // latest ADC value for A pot
+	int32_t b; // latest ADC value for B pot
+	int32_t t; // latest ADC value for T pot 
+	
+	bool  input; // is input asserted?  (accounting for input polarity setting)
+	
+    
+	bool  mode;  // stores mode jumper config
+	bool  input_polarity; // stores input polarity jumper config
+	
+	state st;  // currently active state of FSM
+	
+	int32_t phasor; // counts 0 to 0xffff - needs to be singed to catch overflow
+	bool    rising; // are we rising or falling?
+	
+	int32_t us_val; // how many microseconds to add to the PWM pulse?
+	
+}status;
+
+/* Structure declarations*/
+
+status     current_status;
+
 
 /*
 	calcDelta()
@@ -175,7 +220,7 @@ bool calcNextPhasor(int16_t increment)
 		current_status.phasor -= increment;
 	}
 	
-	// check for overflow indicating end of segment reached.
+	// check for over/underflow indicating end of segment reached.
 	// If so, truncate & return...
 	if(current_status.phasor > PHASOR_MAX)
 	{
@@ -227,7 +272,6 @@ int16_t scalePhasor()
 
 	return result;
 }
-
 
 /* void bistableFSM()
 
@@ -422,6 +466,7 @@ bool edgeDetect()
     return false;
 }
 
+
 /* void ctpFSM()
 
     Custom FSM for CTP's cuckoo bellows project.
@@ -503,11 +548,175 @@ void ctpFSM()
 	
 }
 
+/* void togglingFSM()
+
+    ThisFSM will toggle between A and B each time the input changes.
+    
+    Unlike other FSMs, it takes 2 actuations to make a complete cycle.
+    
+    It might be useful with continuous rotation servos, which could drive 
+    back and forth, changing direction with each input.  
+    Automated camera slider, maybe?
+    */
+void togglingFSM()
+{
+    int16_t delta;
+    
+    delta = calcDelta();
+    
+    bool edge = edgeDetect();
+    
+    switch(current_status.st)
+    {
+        case eIDLE: 
+        {
+            // Advance when we see the switch actuate
+            if(edge)
+            {
+                current_status.st = eATOB;
+                current_status.rising         = true;
+            }
+        }
+        break;
+        case eATOB:
+        {
+            // rising to B,
+            // but if we see new edge, return to A.
+            if(edge)
+            {
+                current_status.st     = eBTOA;
+                current_status.rising = false;
+            }
+            if( calcNextPhasor(delta) )
+            {
+                current_status.st = eATTOP;
+            }
+        }
+        break;
+        case eATTOP:
+        {
+            // Advance when we see the switch actuate
+            if(edge)
+            {
+                current_status.st = eBTOA;
+                current_status.rising         = false;
+            }
+        }
+        break;
+        case eBTOA:
+        {
+            // dropping down to A,
+            // but if we see new edge, return to B.
+            if(edge)
+            {
+                current_status.st     = eATOB;
+                current_status.rising = true;
+            }
+            if( calcNextPhasor(delta) )
+            {
+                current_status.st = eIDLE;
+            }
+        }
+        break;
+        default:
+        {
+            // TODO: better fix?
+            // debugger catch for invalid states
+            while(1);
+        }
+    }
+    
+    current_status.us_val =  scalePhasor();
+    
+}
+
+/* void astableFSM()
+  astable - runs back & forth while switch is held
+*/
+void astableFSM()
+{
+	int16_t delta;
+	
+	delta = calcDelta();
+	
+    bool edge = edgeDetect();
+    
+	switch(current_status.st)
+	{
+    	case eIDLE:
+    	{
+        	// Advance when we see the switch actuate
+        	if(current_status.input == true)
+        	{
+            	current_status.st = eATOB;
+            	current_status.rising         = true;
+        	}
+    	}
+    	break;
+    	case eATOB:
+    	{
+            // input goes away?  Stop where we are.
+        	if(current_status.input == false)
+        	{
+            	current_status.st = eIDLE;
+            	current_status.rising         = false;
+        	}
+        	else if( calcNextPhasor(delta) )
+        	{
+            	current_status.st = eBTOA;
+            	current_status.rising         = false;
+        	}
+    	}
+    	break;
+    	case eATTOP:
+    	{
+        	// we shouldn't actually land here,
+        	// provide proper action in case we somehow do.
+        	if(current_status.input == false)
+        	{
+            	current_status.st = eIDLE;
+            	current_status.rising         = false;
+        	}
+            
+            // Just fall through
+        	current_status.st = eBTOA;
+        	current_status.rising         = false;
+    	}
+    	break;
+    	case eBTOA:
+    	{
+        	// dropping down to A
+        	// only quits when it gets there - ignores switch
+        	if(current_status.input == false)
+	        	{
+    	        	current_status.st = eIDLE;
+    	        	current_status.rising         = false;
+	        	}
+            else if( calcNextPhasor(delta) )
+        	{
+            	current_status.st = eATOB;
+  	        	current_status.rising         = true;
+        	}
+    	}
+    	break;
+    	default:
+    	{
+        	// TODO: better fix?
+        	// debugger catch for invalid states
+        	while(1);
+    	}
+	}
+    
+    
+
+	current_status.us_val =  scalePhasor();
+	
+}
+
 
 // Other FSM candidates?
-// toggling - press for A to B, press again for B to A. (good for dir change using continuous rotation servos)
 // monostable - like one-shot, but doesn't have to complete cycle is released before it reaches B?
-// astable - just runs back & forth while switch is held
+
 
 // Read a given channel of ADC.
 uint32_t readADC(uint8_t chan)
@@ -545,7 +754,8 @@ uint32_t readADC(uint8_t chan)
 
 	value = ADCW;
 	
-	return value;
+    // Pots seem to act backwards, so reverse these readings
+	return (0xffff - value);
 }
 
 
@@ -595,12 +805,11 @@ ISR(TIM1_CAPT_vect)
     // run the FSM - it'll calculate the next value for the uSec timer
 	if(current_status.mode)
 	{
-		bistableFSM();
+		FSMA();
 	}
 	else
 	{
-		//oneshotFSM();	
-        ctpFSM();	
+        FSMB();
 	}
 	
     // Apply the uSec timer to the PWM hardware.
@@ -611,8 +820,14 @@ ISR(TIM1_CAPT_vect)
 
 }
 
-
-
+/* void setupPWM(void)
+    
+   Initialize the PWM hardware to generate pulses suitable
+   for driving a hobby servo.
+   
+   50 mSec interval, pulses range between 1 and 2 mSec wide - servo translates
+   width to position.
+*/
 void setupPWM(void)
 {
 	// holdoff timer prescalar counting while we configure
@@ -671,7 +886,7 @@ void setupPWM(void)
 
 
 int main(void)
-{
+{ 
 	//DDRA |= 0x02;
 	//PORTA |= 0x00;
 	
@@ -719,15 +934,16 @@ int main(void)
 	// so it doesn't start with invalid data.
 	readInputs();
 
+	// Turn off some peripherals that we're not using.
+	PRR |= 0x06;//turn off USI and TIM0.
+
 	// then enable interrupts
 	sei();
 	
-	// Turn off some peripherals that we're not using.
-	PRR |= 0x06;//turn off USI and TIM0.
-	
-	
     while(1)
     {
+        // The real action all takes place in the PWM ISR.
+        
 		// Not sure how much difference this was making...maybe a couple mA?
 		// We have to leave the timer running, so we can only idle...
 		sleep_enable();
