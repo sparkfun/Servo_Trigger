@@ -52,6 +52,19 @@
  dependent of compiling and linking with the right flags set.
  See this link for more info: https://gcc.gnu.org/ml/gcc-help/2003-08/msg00128.html
  
+ 
+ If you want to implement your own FSM, there are a few things to know:
+ - First, the FSMs operate on a phasor value to implement the ramp between A and B.
+   The FSM function is invoked at the start of every PWM cycle, and it needs to 
+   calculate and update the phasor value.  The phasor is 16-bits, and normalized 
+   such that position A is always 0x0, and B is 0xffff.  The FSM updates the phasor.
+ - The phasor will be translated for the actual A & B settings before it's applied.
+ - There are helper routines:
+     - calcDelta calculates how big a step is needed for a given setting of T
+     - calcNextPhasor adds or subtracts the delta, and returns true when the phasor 
+        reaches the end of the transit.
+     - scalePhasor translates the 0 to 0xffff value to pulse width, in microseconds.
+ 
  */ 
 
 #include <avr/io.h>
