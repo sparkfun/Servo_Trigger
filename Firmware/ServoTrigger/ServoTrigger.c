@@ -19,6 +19,10 @@
  PWM, then allows the interrupt to run, and puts the processor to 
  sleep in between.
  
+ DEVELOPMENT TOOLS:
+ This code was developed in Atmel Studio 6.2.1153.
+ The build should also be compatible with avr-gcc & avrdude on the command line.
+ 
  BUILDING & CONFIGURATION:
  There are more possible state machines than can fit in memory all at once.
  2 FSMs can be present at a time - selected using the MODE solder jumper on the back
@@ -76,11 +80,11 @@ static const uint8_t TRIG_PIN_A_MASK = 0x02;
 
 // Timing & ramp gen constants
 // Pulse width = PWM_MIN_USEC + PWM_RANGE_USEC
-// some servos have a wider range than others - 1 to 2 msec is save for all tested so far.
+// some servos have a wider range than others - 1 to 2 msec is safe for all tested so far.
 // .7 to 2.3 msec will drive some farther, but will make others very unhappy, possibly grinding gears.
 
 #ifdef SAFERANGE
-// Some servos are very unhappy if pulses leave the 1 to 2 mSec range.  
+// Some servos are *very* unhappy if pulses leave the 1 to 2 mSec range.  
 // SAFERANGE constrains pulses to that range.
 static const int32_t PWM_MIN_USEC   = 1000; // narrowest pulse is 1000 usec
 static const int32_t PWM_RANGE_USEC = 1000; // diff between min and max PWM pulses.
