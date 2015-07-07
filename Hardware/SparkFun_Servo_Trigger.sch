@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.6.0">
+<eagle version="7.3.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -20057,17 +20057,16 @@ Daisy-Chain Output</text>
 <text x="20.32" y="43.18" size="2.54" layer="94" font="vector">Mode Configuration</text>
 <text x="93.98" y="43.18" size="2.54" layer="94" font="vector">Polarity Configuration</text>
 <text x="25.4" y="10.16" size="1.27" layer="94">SJ1 sets mode
--Open, default, is monostable (one-shot) mode.
-When input trips, servo will cylce from A 
-to B, then return to A.  
-It will always do the full cycle.
-
-
--Closed is bistable mode.  While input is de-asserted,
+-Open, default, is bistable mode.  While input is de-asserted,
 servo sits at A.  While input is asserted, it goes to B,
 returning to A when input is deasserted.  If servo
 travel takes longer then the input is held, cycle 
-will be incomplete.</text>
+will be incomplete. 
+
+-Closed is  one-shot mode.
+When input trips, servo will cycle from A 
+to B, then return to A.  
+It will always do the full cycle.</text>
 <text x="91.44" y="5.08" size="1.27" layer="94">SJ2 sets input polarity
 -Open (default) is active low, with switch input 
 pulled up internally.  Intended for use with 
