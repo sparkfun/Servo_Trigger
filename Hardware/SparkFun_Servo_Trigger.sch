@@ -19972,7 +19972,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <parts>
 <part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device="">
 <attribute name="DESIGNER" value="Byron Jacquot"/>
-<attribute name="VERSION" value="V10"/>
+<attribute name="VERSION" value="V11"/>
 </part>
 <part name="R4" library="SparkFun-Resistors" deviceset="10KOHM-1/10W-1%(0603)" device="0603" value="10K"/>
 <part name="JP9" library="SparkFun-Connectors" deviceset="AVR_SPI_PRG_6" device="PTH" value=""/>
