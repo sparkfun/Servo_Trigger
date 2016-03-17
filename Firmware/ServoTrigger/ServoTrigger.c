@@ -45,7 +45,19 @@
  
  See the product documentation for more details about each FSM.
  
- All of these FSMs are implemented in the source file - rather than building a bunch of 
+ We're using AtmelStudio configurations to manage the default FSMs.  The two default 
+ configurations are RegularServo, and ContinuousRotation.
+ 
+           RegularServo    ContinuousRotation
+ ---------------------------------------------
+ FSMA      bistableFSM     togglingFSM
+ FSMB      oneshotFSM      bistableFSM
+ ---------------------------------------------
+ 
+ Additionally, the continuous rotation version offers a wider range of transit times, 
+ up to 10 seconds.
+ 
+ All of these FSMs are implemented in this source file - rather than building a bunch of 
  convoluted macros to include the right functions, we're taking advantage of the 
  linker-elision feature of GCC - functions that are never called will be omitted from the 
  output - you'll see the names in the "discarded sections" of the *.MAP file.  It's very
@@ -129,11 +141,20 @@ static const int32_t PHASOR_MAX     = 0x0000ffff; // Phasor counts from 0 to 0xf
 // using the next 4 bits.
 static const int16_t timelut[17] =
 {
-    437,  583,   749,   1049,
-    1311, 1748,  2185,  2621,
-    3277, 4369,  5243,  6554,
-    8738, 10923, 13107, 16384,
-    26214
+#ifdef SLOWCHANGE
+	// Slower transitions for continuous-rotation	
+	131, 194, 250, 350,
+	437, 583, 728, 874,
+	1092, 1456, 1748, 2621,
+	3745, 5243,	8738, 13107,
+	26214
+#else
+	437,  583,   749,   1049,
+	1311, 1748,  2185,  2621,
+	3277, 4369,  5243,  6554,
+	8738, 10923, 13107, 16384,
+	26214	
+#endif
 };
 
 
