@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.05" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.005" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="mm" unit="mm" style="lines" multiple="1" display="yes" altdistance="0.05" altunitdist="mm" altunit="mm"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="yes" active="yes"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -28,7 +28,7 @@
 <layer number="18" name="Vias" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="19" name="Unrouted" color="6" fill="1" visible="yes" active="yes"/>
 <layer number="20" name="Dimension" color="15" fill="1" visible="yes" active="yes"/>
-<layer number="21" name="tPlace" color="16" fill="1" visible="no" active="yes"/>
+<layer number="21" name="tPlace" color="16" fill="1" visible="yes" active="yes"/>
 <layer number="22" name="bPlace" color="14" fill="1" visible="yes" active="yes"/>
 <layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="yes"/>
@@ -58,7 +58,7 @@
 <layer number="48" name="Document" color="7" fill="1" visible="no" active="yes"/>
 <layer number="49" name="Reference" color="7" fill="1" visible="no" active="yes"/>
 <layer number="50" name="dxf" color="7" fill="1" visible="no" active="no"/>
-<layer number="51" name="tDocu" color="6" fill="1" visible="no" active="yes"/>
+<layer number="51" name="tDocu" color="6" fill="1" visible="yes" active="yes"/>
 <layer number="52" name="bDocu" color="7" fill="1" visible="no" active="yes"/>
 <layer number="53" name="tGND_GNDA" color="7" fill="9" visible="no" active="no"/>
 <layer number="54" name="bGND_GNDA" color="1" fill="9" visible="no" active="no"/>
@@ -188,10 +188,11 @@
 Clears 4-40 screw</text>
 <rectangle x1="4.572" y1="14.732" x2="4.699" y2="17.018" layer="41"/>
 <rectangle x1="4.572" y1="15.875" x2="6.731" y2="16.002" layer="41"/>
-<rectangle x1="10.922" y1="30.607" x2="11.938" y2="31.623" layer="22"/>
-<text x="9.525" y="30.099" size="1.27" layer="22" font="vector" ratio="15" rot="SMR270" align="center-left">Standard</text>
-<text x="11.43" y="30.099" size="1.27" layer="22" font="vector" ratio="15" rot="SMR270" align="center-left">Continuous Rotation</text>
-<rectangle x1="9.017" y1="30.607" x2="10.033" y2="31.623" layer="22"/>
+<rectangle x1="10.287" y1="30.607" x2="11.303" y2="31.623" layer="22"/>
+<text x="9.017" y="30.099" size="1.27" layer="22" font="vector" ratio="15" rot="SMR270" align="center-left">Standard</text>
+<text x="10.795" y="30.099" size="1.27" layer="22" font="vector" ratio="15" rot="SMR270" align="center-left">Continuous Rotation</text>
+<rectangle x1="8.509" y1="30.607" x2="9.525" y2="31.623" layer="22"/>
+<wire x1="17.5" y1="15.9" x2="17.5" y2="14.6" width="0.254" layer="22"/>
 </plain>
 <libraries>
 <library name="SparkFun-Aesthetics">
