@@ -19970,7 +19970,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </class>
 </classes>
 <parts>
-<part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device="">
+<part name="FRAME1" library="SparkFun-Aesthetics" deviceset="FRAME-LETTER" device="" value="frame">
 <attribute name="DESIGNER" value="Byron Jacquot"/>
 <attribute name="VERSION" value="V11"/>
 </part>
@@ -20056,34 +20056,49 @@ Daisy-Chain Output</text>
 <wire x1="76.2" y1="0" x2="76.2" y2="50.8" width="0.1524" layer="97" style="shortdash"/>
 <text x="20.32" y="43.18" size="2.54" layer="94" font="vector">Mode Configuration</text>
 <text x="93.98" y="43.18" size="2.54" layer="94" font="vector">Polarity Configuration</text>
-<text x="25.4" y="10.16" size="1.27" layer="94">SJ1 sets mode
+<text x="25.4" y="5.08" size="1.27" layer="97">SJ1 sets mode
+Variant of servo trigger is indicated in a 
+check-box on that back of the PCB.
+
+For "standard" servo trigger:
 -Open, default, is bistable mode.  While input is de-asserted,
 servo sits at A.  While input is asserted, it goes to B,
 returning to A when input is deasserted.  If servo
 travel takes longer then the input is held, cycle 
 will be incomplete. 
-
 -Closed is  one-shot mode.
 When input trips, servo will cycle from A 
 to B, then return to A.  
-It will always do the full cycle.</text>
-<text x="91.44" y="5.08" size="1.27" layer="94">SJ2 sets input polarity
+It will always do the full cycle.
+
+For "continuous rotoation" servo trigger
+-Open selects toggling mode.  On each actuation of input, 
+trigger will switch to the other state - from A to B, or B to A.
+-Closed selects bistable, same as the default for standard 
+Servo Trigger, as described above.</text>
+<text x="91.44" y="5.08" size="1.27" layer="97">SJ2 sets input polarity
 -Open (default) is active low, with switch input 
 pulled up internally.  Intended for use with 
 a normally-open switch or active-low logic.
 
 -Closed is for active high-logic.</text>
-<text x="124.46" y="139.7" size="1.27" layer="94">Pulled up internally in processor 
+<text x="124.46" y="139.7" size="1.27" layer="97">Pulled up internally in processor 
 Datasheet says Rup is in the 20K to 50K range.</text>
-<text x="5.08" y="139.7" size="1.27" layer="94">Expecting 5VDC power.
+<text x="5.08" y="139.7" size="1.27" layer="97">Expecting 5VDC power.
 Current consumed is dependent 
 on servo type and loading.</text>
-<text x="154.94" y="53.34" size="1.27" layer="94">These pots control the servo position and timing.
+<text x="154.94" y="53.34" size="1.27" layer="97">These pots control the servo position and timing.
 
+For standard servo trigger:
 "A" sets the default position if the servo.
 "B" sets the position it travels to when the switch 
 is actuated (whether it stays there or not is
  configured with the mode jumper).
+"T" sets the time it takes to move from A to B
+ and back, over a range of 0 to 10 seconds.</text>
+<text x="195.58" y="55.88" size="1.27" layer="97">For continuous rotation servo trigger:
+"A" sets the default speed &amp; direction if the servo.
+"B" sets the alternate speed &amp; direction.
 "T" sets the time it takes to move from A to B
  and back, over a range of 0 to 10 seconds.</text>
 </plain>
