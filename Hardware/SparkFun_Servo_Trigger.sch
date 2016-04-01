@@ -21099,6 +21099,8 @@ is actuated (whether it stays there or not is
 "B" sets the alternate speed &amp; direction.
 "T" sets the time it takes to move from A to B
  and back, over a range of 0 to 10 seconds.</text>
+<text x="167.64" y="7.62" size="3.81" layer="94" font="vector">Byron Jacquot</text>
+<text x="238.76" y="7.62" size="2.54" layer="94" font="vector">V11</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
