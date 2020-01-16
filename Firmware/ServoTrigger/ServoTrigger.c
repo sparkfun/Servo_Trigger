@@ -263,14 +263,26 @@ bool calcNextPhasor(int16_t increment)
 	if(current_status.phasor > PHASOR_MAX)
 	{
 		current_status.phasor = PHASOR_MAX;
-		return true;		
+		#ifdef LIMP
+			// Disable PWM output pin
+			DDRA &= ~0x40;
+		#endif
+		return true;
 	}
 	else if(current_status.phasor < 0)
 	{
 		current_status.phasor = 0;
-		return true;		
+		#ifdef LIMP
+			// Disable PWM output pin
+			DDRA &= ~0x40;
+		#endif
+		return true;
 	}
-	
+
+	#ifdef LIMP
+		// Enable PWM output pin
+		DDRA |= 0x40;
+	#endif
 	return false;
 }
 
@@ -872,8 +884,10 @@ void setupPWM(void)
 	// This disables the peripheral
 	GTCCR = 1 << TSM;
 
-	// Enable timer output compare A bit as output
-	DDRA |= 0x40;
+	#ifndef LIMP
+		// Enable timer output compare A bit as output
+		DDRA |= 0x40;
+	#endif
 
 	// Note: WGM is 4 bits split between Ctrl registers A and B.
 	// We want mode FAST PWM, top set by ICR1
