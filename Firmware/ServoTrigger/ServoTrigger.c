@@ -139,10 +139,10 @@ static const int32_t PHASOR_MAX     = 0x0000ffff; // Phasor counts from 0 to 0xf
 // Table is 17 entries long so we can do linear interpolation between
 // the N and N+1th entries, indexed using 4 MSBs of T value, interpolated
 // using the next 4 bits.
-static const int16_t timelut[17] =
+static int16_t timelut[17] =
 {
 #ifdef SLOWCHANGE
-	// Slower transitions for continuous-rotation	
+	// Slower transitions for continuous-rotation
 	131, 194, 250, 350,
 	437, 583, 728, 874,
 	1092, 1456, 1748, 2621,
@@ -153,7 +153,7 @@ static const int16_t timelut[17] =
 	1311, 1748,  2185,  2621,
 	3277, 4369,  5243,  6554,
 	8738, 10923, 13107, 16384,
-	26214	
+	26214
 #endif
 };
 
@@ -263,14 +263,26 @@ bool calcNextPhasor(int16_t increment)
 	if(current_status.phasor > PHASOR_MAX)
 	{
 		current_status.phasor = PHASOR_MAX;
-		return true;		
+		#ifdef LIMP
+			// Disable PWM output pin
+			DDRA &= ~0x40;
+		#endif
+		return true;
 	}
 	else if(current_status.phasor < 0)
 	{
 		current_status.phasor = 0;
-		return true;		
+		#ifdef LIMP
+			// Disable PWM output pin
+			DDRA &= ~0x40;
+		#endif
+		return true;
 	}
-	
+
+	#ifdef LIMP
+		// Enable PWM output pin
+		DDRA |= 0x40;
+	#endif
 	return false;
 }
 
@@ -872,8 +884,10 @@ void setupPWM(void)
 	// This disables the peripheral
 	GTCCR = 1 << TSM;
 
-	// Enable timer output compare A bit as output
-	DDRA |= 0x40;
+	#ifndef LIMP
+		// Enable timer output compare A bit as output
+		DDRA |= 0x40;
+	#endif
 
 	// Note: WGM is 4 bits split between Ctrl registers A and B.
 	// We want mode FAST PWM, top set by ICR1
@@ -925,6 +939,13 @@ void setupPWM(void)
 
 int main(void)
 { 
+	#ifdef TIMEMULTIPLIER
+		for(volatile uint8_t i = 0; i != 17; i++)
+		{
+			timelut[i] /= TIMEMULTIPLIER;
+		}
+	#endif
+
 	//DDRA |= 0x02;
 	//PORTA |= 0x00;
 	
