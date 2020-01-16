@@ -77,7 +77,7 @@ LIB_DEP+=
 ./%.o: .././%.c
 	@echo  Building file: $<
 	@echo  Invoking: AVR/GNU C Compiler : 4.8.1
-	$(QUOTE)avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DFSMA=ctpFSM -DFSMB=togglingFSM -DDEBUG  -DSAFERANGE  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -dD -Wall -mmcu=attiny84 -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	$(QUOTE)avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DFSMA=bistableFSM -DFSMB=oneshotFSM -DDEBUG  -DSAFERANGE  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -dD -Wall -mmcu=attiny84 -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
 	@echo Finished building: $<
 	
 
