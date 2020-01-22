@@ -1,7 +1,7 @@
 SparkFun Servo Trigger
 ========================================
 
-![SparkFun Servo Trigger](https://cdn.sparkfun.com//assets/parts/1/0/1/7/1/13118-03.jpg)
+![SparkFun Servo Trigger](https://cdn.sparkfun.com/assets/parts/1/0/1/7/1/13118-01a.jpg)
 
 [*SparkFun Servo Trigger (WIG-13118)*](https://www.sparkfun.com/products/13118)
 
