@@ -5,12 +5,18 @@ Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "ServoTrigger", "ServoTrigge
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		ContinuousRotation|AVR = ContinuousRotation|AVR
 		Debug|AVR = Debug|AVR
+		RegularServo|AVR = RegularServo|AVR
 		Release|AVR = Release|AVR
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AD378655-7D67-400B-A270-D7B92D016C84}.ContinuousRotation|AVR.ActiveCfg = ContinuousRotation|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.ContinuousRotation|AVR.Build.0 = ContinuousRotation|AVR
 		{AD378655-7D67-400B-A270-D7B92D016C84}.Debug|AVR.ActiveCfg = Debug|AVR
 		{AD378655-7D67-400B-A270-D7B92D016C84}.Debug|AVR.Build.0 = Debug|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.RegularServo|AVR.ActiveCfg = RegularServo|AVR
+		{AD378655-7D67-400B-A270-D7B92D016C84}.RegularServo|AVR.Build.0 = RegularServo|AVR
 		{AD378655-7D67-400B-A270-D7B92D016C84}.Release|AVR.ActiveCfg = Release|AVR
 		{AD378655-7D67-400B-A270-D7B92D016C84}.Release|AVR.Build.0 = Release|AVR
 	EndGlobalSection
